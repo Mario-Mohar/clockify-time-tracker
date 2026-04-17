@@ -13,39 +13,40 @@
   $: isNegative = available !== null && available < 0;
 </script>
 
-<button class="tile" on:click={onClick} disabled={isLoading} type="button">
-  <div class="title">Urlaub {year}</div>
-
-  {#if isLoading}
-    <div class="loading">Lade …</div>
-  {:else if error}
+{#if error}
+  <div class="tile">
+    <div class="title">Urlaub {year}</div>
     <div class="error">
       <div>⚠️ {error}</div>
-      <button
-        class="retry"
-        type="button"
-        on:click|stopPropagation={onRetry}
-      >
+      <button class="retry" type="button" on:click={onRetry}>
         Erneut versuchen
       </button>
     </div>
-  {:else if summary}
-    <div class="stats">
-      <div class="stat">
-        <div class="value">{summary.taken}</div>
-        <div class="label">Genommen</div>
+  </div>
+{:else}
+  <button class="tile" on:click={onClick} disabled={isLoading} type="button">
+    <div class="title">Urlaub {year}</div>
+
+    {#if isLoading}
+      <div class="loading">Lade …</div>
+    {:else if summary}
+      <div class="stats">
+        <div class="stat">
+          <div class="value">{summary.taken}</div>
+          <div class="label">Genommen</div>
+        </div>
+        <div class="stat">
+          <div class="value">{summary.planned}</div>
+          <div class="label">Geplant</div>
+        </div>
+        <div class="stat" class:negative={isNegative}>
+          <div class="value">{available}</div>
+          <div class="label">Verfügbar</div>
+        </div>
       </div>
-      <div class="stat">
-        <div class="value">{summary.planned}</div>
-        <div class="label">Geplant</div>
-      </div>
-      <div class="stat" class:negative={isNegative}>
-        <div class="value">{available}</div>
-        <div class="label">Verfügbar</div>
-      </div>
-    </div>
-  {/if}
-</button>
+    {/if}
+  </button>
+{/if}
 
 <style>
   .tile {
