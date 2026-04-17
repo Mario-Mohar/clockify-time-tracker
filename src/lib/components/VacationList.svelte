@@ -128,10 +128,24 @@
   .delete {
     grid-row: 1 / span 2;
     align-self: center;
-    background: none;
-    border: none;
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
     cursor: pointer;
-    font-size: 1.25rem;
-    padding: 0.25rem;
+    font-size: 1rem;
+    padding: 0.5rem 0.75rem;
+    color: #e53e3e;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .delete:hover {
+    background: #fed7d7;
+    border-color: #e53e3e;
+  }
+
+  .delete:active {
+    background: #feb2b2;
   }
 </style>
