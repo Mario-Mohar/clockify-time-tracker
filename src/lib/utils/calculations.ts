@@ -26,6 +26,7 @@ export interface WorkConfig {
   workDaysPerWeek: number; // e.g., 5
   startOfWeek: 'monday' | 'sunday'; // First day of week
   state: AustrianState; // Austrian federal state (for potential future use)
+  vacationBudget: number; // Tage/Jahr, default 25
 }
 
 export interface TimeComparison {
@@ -46,6 +47,7 @@ export const DEFAULT_CONFIG: WorkConfig = {
   workDaysPerWeek: 5,
   startOfWeek: 'monday',
   state: 'W', // Default to Wien (Austria)
+  vacationBudget: 25,
 };
 
 /**

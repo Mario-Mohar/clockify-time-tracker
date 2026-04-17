@@ -20,6 +20,7 @@
 
   function handleSave() {
     workConfig.setConfig({
+      ...$workConfig,
       weeklyHours,
       workDaysPerWeek: workDays,
       startOfWeek,
