@@ -33,7 +33,10 @@ export async function listByYear(userId: string, year: number): Promise<Vacation
   const yearStart = `${year}-01-01`;
   const yearEnd = `${year}-12-31`;
   const rows = await sql<DbVacation[]>`
-    SELECT id, user_id, start_date, end_date, note, created_at
+    SELECT id, user_id,
+           to_char(start_date, 'YYYY-MM-DD') AS start_date,
+           to_char(end_date, 'YYYY-MM-DD') AS end_date,
+           note, created_at
     FROM vacations
     WHERE user_id = ${userId}
       AND start_date <= ${yearEnd}
@@ -49,7 +52,10 @@ export async function listByYear(userId: string, year: number): Promise<Vacation
 export async function listAll(userId: string): Promise<VacationRow[]> {
   await initDb();
   const rows = await sql<DbVacation[]>`
-    SELECT id, user_id, start_date, end_date, note, created_at
+    SELECT id, user_id,
+           to_char(start_date, 'YYYY-MM-DD') AS start_date,
+           to_char(end_date, 'YYYY-MM-DD') AS end_date,
+           note, created_at
     FROM vacations
     WHERE user_id = ${userId}
     ORDER BY start_date DESC
@@ -68,7 +74,10 @@ export async function findOverlap(
 ): Promise<VacationRow | null> {
   await initDb();
   const rows = await sql<DbVacation[]>`
-    SELECT id, user_id, start_date, end_date, note, created_at
+    SELECT id, user_id,
+           to_char(start_date, 'YYYY-MM-DD') AS start_date,
+           to_char(end_date, 'YYYY-MM-DD') AS end_date,
+           note, created_at
     FROM vacations
     WHERE user_id = ${userId}
       AND NOT (end_date < ${startDate} OR start_date > ${endDate})
@@ -87,7 +96,10 @@ export async function create(
   const rows = await sql<DbVacation[]>`
     INSERT INTO vacations (user_id, start_date, end_date, note)
     VALUES (${userId}, ${startDate}, ${endDate}, ${note})
-    RETURNING id, user_id, start_date, end_date, note, created_at
+    RETURNING id, user_id,
+              to_char(start_date, 'YYYY-MM-DD') AS start_date,
+              to_char(end_date, 'YYYY-MM-DD') AS end_date,
+              note, created_at
   `;
   return rowToDto(rows[0]);
 }
