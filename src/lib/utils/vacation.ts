@@ -30,3 +30,45 @@ export function countVacationDaysInYear(
 
   return countWorkingDaysWithHolidays(rangeStart, rangeEnd, state);
 }
+
+export interface VacationSummary {
+  taken: number;
+  planned: number;
+  total: number;
+}
+
+export function summarizeVacationYear(
+  entries: Pick<VacationEntry, 'start' | 'end'>[],
+  year: number,
+  state: AustrianState,
+  today: Date
+): VacationSummary {
+  const yearStart = new Date(year, 0, 1);
+  const yearEnd = new Date(year, 11, 31);
+
+  let taken = 0;
+  let planned = 0;
+
+  for (const entry of entries) {
+    const start = parseDate(entry.start);
+    const end = parseDate(entry.end);
+    const rangeStart = start > yearStart ? start : yearStart;
+    const rangeEnd = end < yearEnd ? end : yearEnd;
+    if (rangeStart > rangeEnd) continue;
+
+    // Split the clipped range at today.
+    const takenEnd = rangeEnd <= today ? rangeEnd : today;
+    const plannedStart = new Date(today);
+    plannedStart.setDate(plannedStart.getDate() + 1);
+
+    if (rangeStart <= takenEnd && rangeStart <= today) {
+      taken += countWorkingDaysWithHolidays(rangeStart, takenEnd, state);
+    }
+    if (plannedStart <= rangeEnd) {
+      const pStart = rangeStart > plannedStart ? rangeStart : plannedStart;
+      planned += countWorkingDaysWithHolidays(pStart, rangeEnd, state);
+    }
+  }
+
+  return { taken, planned, total: taken + planned };
+}

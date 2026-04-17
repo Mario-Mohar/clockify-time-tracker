@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { countVacationDaysInYear } from './vacation';
+import { countVacationDaysInYear, summarizeVacationYear } from './vacation';
 
 describe('countVacationDaysInYear', () => {
   it('counts working days only (Mo–Fr, no holidays) within a single year', () => {
@@ -60,5 +60,56 @@ describe('countVacationDaysInYear', () => {
       'W'
     );
     expect(days).toBe(0);
+  });
+});
+
+describe('summarizeVacationYear', () => {
+  const TODAY = new Date(2026, 6, 20); // 2026-07-20 (Monday)
+
+  it('splits into taken (<= today) and planned (> today)', () => {
+    const entries = [
+      { start: '2026-03-02', end: '2026-03-06' }, // 5 days, all past → taken
+      { start: '2026-09-14', end: '2026-09-18' }, // 5 days, all future → planned
+    ];
+    const summary = summarizeVacationYear(entries, 2026, 'W', TODAY);
+    expect(summary.taken).toBe(5);
+    expect(summary.planned).toBe(5);
+    expect(summary.total).toBe(10);
+  });
+
+  it('splits a single entry that spans today', () => {
+    // 2026-07-20 (today, Mo) - 2026-07-24 (Fr) = 5 working days
+    // Taken: today only = 1; Planned: Tue-Fri = 4
+    const entries = [{ start: '2026-07-20', end: '2026-07-24' }];
+    const summary = summarizeVacationYear(entries, 2026, 'W', TODAY);
+    expect(summary.taken).toBe(1);
+    expect(summary.planned).toBe(4);
+    expect(summary.total).toBe(5);
+  });
+
+  it('ignores entries outside the requested year for the summary', () => {
+    const entries = [
+      { start: '2025-07-20', end: '2025-07-24' }, // other year
+      { start: '2026-03-02', end: '2026-03-06' }, // 5 days 2026, taken
+    ];
+    const summary = summarizeVacationYear(entries, 2026, 'W', TODAY);
+    expect(summary.taken).toBe(5);
+    expect(summary.planned).toBe(0);
+    expect(summary.total).toBe(5);
+  });
+
+  it('handles year-boundary entry correctly', () => {
+    // 28.12.2026 (Mo) – 05.01.2027 (Di)
+    // For year 2026 with today = 2026-07-20: all 4 days in 2026 are future → planned
+    const entries = [{ start: '2026-12-28', end: '2027-01-05' }];
+    const summary = summarizeVacationYear(entries, 2026, 'W', TODAY);
+    expect(summary.taken).toBe(0);
+    expect(summary.planned).toBe(4);
+    expect(summary.total).toBe(4);
+  });
+
+  it('returns zeros for an empty list', () => {
+    const summary = summarizeVacationYear([], 2026, 'W', TODAY);
+    expect(summary).toEqual({ taken: 0, planned: 0, total: 0 });
   });
 });
