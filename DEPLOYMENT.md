@@ -124,3 +124,18 @@ Bei Problemen:
 - Railway Docs: https://docs.railway.app
 - Railway Discord: https://discord.gg/railway
 - GitHub Issues: Erstelle ein Issue in diesem Repo
+
+## PostgreSQL auf Railway
+
+Die Urlaubsverwaltung braucht eine Postgres-DB.
+
+1. Im Railway-Projekt: **+ New → Database → Add PostgreSQL**
+2. Railway verlinkt die `DATABASE_URL` automatisch mit dem App-Service (in den App-Variablen sichtbar)
+3. Keine weiteren Schritte — Schema wird beim ersten API-Request automatisch angelegt (`CREATE TABLE IF NOT EXISTS`)
+
+### Lokale Entwicklung
+
+```bash
+docker compose up -d
+npm run dev
+```
