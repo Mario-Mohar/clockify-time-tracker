@@ -26,7 +26,8 @@
     "vitest": "^1.6.1"
   },
   "dependencies": {
-    "date-fns": "^4.1.0"
+    "date-fns": "^4.1.0",
+    "postgres": "^3.4.9"
   },
   "engines": {
     "node": ">=18.0.0"
