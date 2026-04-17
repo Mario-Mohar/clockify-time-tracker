@@ -26,11 +26,14 @@ export interface WorkConfig {
   workDaysPerWeek: number; // e.g., 5
   startOfWeek: 'monday' | 'sunday'; // First day of week
   state: AustrianState; // Austrian federal state (for potential future use)
+  vacationBudget: number; // Tage/Jahr, default 25
 }
 
 export interface TimeComparison {
   requiredHours: number;
   actualHours: number;
+  clockifyHours: number;   // NEW: aus Clockify
+  vacationHours: number;   // NEW: aus Urlaub
   difference: number; // positive = overtime, negative = missing
   status: 'over' | 'good' | 'under'; // Color coding
   period: string; // e.g., "2025-W47", "2025-11", "2025"
@@ -46,6 +49,7 @@ export const DEFAULT_CONFIG: WorkConfig = {
   workDaysPerWeek: 5,
   startOfWeek: 'monday',
   state: 'W', // Default to Wien (Austria)
+  vacationBudget: 25,
 };
 
 /**
@@ -130,16 +134,19 @@ export function getStatus(difference: number): 'over' | 'good' | 'under' {
  * Compare required vs actual hours for today
  */
 export function compareTodayHours(
-  actualHours: number,
+  clockifyHours: number,
+  vacationHours: number,
   config: WorkConfig
 ): TimeComparison {
   const requiredHours = calculateRequiredToday(config);
+  const actualHours = clockifyHours + vacationHours;
   const difference = actualHours - requiredHours;
   const today = new Date();
-
   return {
     requiredHours,
     actualHours,
+    clockifyHours,
+    vacationHours,
     difference,
     status: getStatus(difference),
     period: format(today, 'yyyy-MM-dd', { locale: de }),
@@ -150,16 +157,19 @@ export function compareTodayHours(
  * Compare required vs actual hours for current week
  */
 export function compareWeekHours(
-  actualHours: number,
+  clockifyHours: number,
+  vacationHours: number,
   config: WorkConfig,
   date: Date = new Date()
 ): TimeComparison {
   const requiredHours = calculateRequiredWeek(config, date);
+  const actualHours = clockifyHours + vacationHours;
   const difference = actualHours - requiredHours;
-
   return {
     requiredHours,
     actualHours,
+    clockifyHours,
+    vacationHours,
     difference,
     status: getStatus(difference),
     period: format(date, "'KW' II/yyyy", { locale: de }),
@@ -170,7 +180,8 @@ export function compareWeekHours(
  * Compare required vs actual hours for current month
  */
 export function compareMonthHours(
-  actualHours: number,
+  clockifyHours: number,
+  vacationHours: number,
   config: WorkConfig,
   date: Date = new Date()
 ): TimeComparison {
@@ -178,13 +189,14 @@ export function compareMonthHours(
   const monthEnd = endOfMonth(date);
   const workingDays = countWorkingDays(monthStart, monthEnd, config);
   const holidays = getMonthHolidays(date.getFullYear(), date.getMonth(), config.state);
-
   const requiredHours = calculateRequiredMonth(config, date);
+  const actualHours = clockifyHours + vacationHours;
   const difference = actualHours - requiredHours;
-
   return {
     requiredHours,
     actualHours,
+    clockifyHours,
+    vacationHours,
     difference,
     status: getStatus(difference),
     period: format(date, 'MMMM yyyy', { locale: de }),
@@ -197,7 +209,8 @@ export function compareMonthHours(
  * Compare required vs actual hours for current year
  */
 export function compareYearHours(
-  actualHours: number,
+  clockifyHours: number,
+  vacationHours: number,
   config: WorkConfig,
   date: Date = new Date()
 ): TimeComparison {
@@ -205,13 +218,14 @@ export function compareYearHours(
   const yearEnd = endOfYear(date);
   const workingDays = countWorkingDays(yearStart, yearEnd, config);
   const holidays = getYearHolidays(date.getFullYear(), config.state);
-
   const requiredHours = calculateRequiredYear(config, date);
+  const actualHours = clockifyHours + vacationHours;
   const difference = actualHours - requiredHours;
-
   return {
     requiredHours,
     actualHours,
+    clockifyHours,
+    vacationHours,
     difference,
     status: getStatus(difference),
     period: format(date, 'yyyy', { locale: de }),

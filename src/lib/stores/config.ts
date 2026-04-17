@@ -27,6 +27,11 @@ function loadConfig(): WorkConfig {
         config.state = DEFAULT_CONFIG.state;
         saveConfig(config);
       }
+      // Migration: Add vacationBudget if missing (for old configs)
+      if (config.vacationBudget === undefined) {
+        config.vacationBudget = DEFAULT_CONFIG.vacationBudget;
+        saveConfig(config);
+      }
       return config;
     }
   } catch (error) {
@@ -97,6 +102,17 @@ function createConfigStore() {
     setState(state: WorkConfig['state']) {
       update((config) => {
         const newConfig = { ...config, state };
+        saveConfig(newConfig);
+        return newConfig;
+      });
+    },
+
+    /**
+     * Update vacation budget (days per year)
+     */
+    setVacationBudget(days: number) {
+      update((config) => {
+        const newConfig = { ...config, vacationBudget: days };
         saveConfig(newConfig);
         return newConfig;
       });

@@ -141,6 +141,9 @@ function createAuthStore() {
       if (browser) {
         localStorage.removeItem(STORAGE_KEY);
       }
+
+      // Reset vacation cache (lazy import to avoid circular deps)
+      import('./vacations').then(({ vacations }) => vacations.reset());
     },
 
     /**

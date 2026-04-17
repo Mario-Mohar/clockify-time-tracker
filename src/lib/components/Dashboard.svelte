@@ -19,6 +19,11 @@
     getWeekStart,
   } from '$lib/utils/calculations';
   import type { TimeComparison } from '$lib/utils/calculations';
+  import { goto } from '$app/navigation';
+  import { vacations } from '$lib/stores/vacations';
+  import VacationTile from './VacationTile.svelte';
+  import { summarizeVacationYear, vacationHoursInRange, type VacationSummary } from '$lib/utils/vacation';
+  import { startOfMonth, endOfMonth, startOfYear, endOfYear, endOfWeek } from 'date-fns';
 
   type Period = 'day' | 'week' | 'month' | 'year';
 
@@ -32,6 +37,8 @@
   let yearData: TimeComparison | null = null;
 
   let lastUpdated: Date | null = null;
+  let vacationError: string | null = null;
+  let vacationSummary: VacationSummary | null = null;
 
   $: currentData = {
     day: todayData,
@@ -41,42 +48,68 @@
   }[selectedPeriod];
 
   /**
-   * Fetch time data from Clockify
+   * Fetch time data from Clockify and vacation store
    */
   async function fetchTimeData() {
-    if (!$auth.apiKey || !$currentUser || !$currentWorkspace) {
-      return;
-    }
+    if (!$auth.apiKey || !$currentUser || !$currentWorkspace) return;
 
     isLoading = true;
     error = null;
+    vacationError = null;
 
-    try {
-      const client = createClockifyClient($auth.apiKey);
-      const userId = $currentUser.id;
-      const workspaceId = $currentWorkspace.id;
+    const userId = $currentUser.id;
+    const workspaceId = $currentWorkspace.id;
+    const currentYear = new Date().getFullYear();
 
-      // Fetch all periods in parallel
-      const [todaySummary, weekSummary, monthSummary, yearSummary] = await Promise.all([
+    // Load Clockify — errors here must not kill the vacation load
+    const clockifyPromise = (async () => {
+      const client = createClockifyClient($auth.apiKey!);
+      return Promise.all([
         client.getTodayEntries(workspaceId, userId),
         client.getWeekEntries(workspaceId, userId, getWeekStart($workConfig)),
         client.getMonthEntries(workspaceId, userId, new Date().getFullYear(), new Date().getMonth()),
         client.getYearEntries(workspaceId, userId, new Date().getFullYear()),
       ]);
+    })();
 
-      // Calculate comparisons
-      todayData = compareTodayHours(todaySummary.totalHours, $workConfig);
-      weekData = compareWeekHours(weekSummary.totalHours, $workConfig);
-      monthData = compareMonthHours(monthSummary.totalHours, $workConfig);
-      yearData = compareYearHours(yearSummary.totalHours, $workConfig);
+    // Load vacations — errors here must not kill Clockify display
+    const vacationPromise = vacations
+      .loadYear(currentYear)
+      .catch((err) => {
+        vacationError = err?.message || 'Urlaubsdaten nicht verfügbar';
+      });
 
+    const [clockifyResult] = await Promise.allSettled([clockifyPromise, vacationPromise]);
+
+    // Build comparisons from whichever data is available.
+    const entries = $vacations.byYear[currentYear] ?? [];
+    const hoursPerDay = $workConfig.weeklyHours / $workConfig.workDaysPerWeek;
+    const now = new Date();
+    const weekStart = getWeekStart($workConfig);
+    const weekEnd = endOfWeek(now, { weekStartsOn: $workConfig.startOfWeek === 'monday' ? 1 : 0 });
+
+    const vacToday = vacationHoursInRange(entries, now, now, $workConfig.state, hoursPerDay);
+    const vacWeek = vacationHoursInRange(entries, weekStart, weekEnd, $workConfig.state, hoursPerDay);
+    const vacMonth = vacationHoursInRange(entries, startOfMonth(now), endOfMonth(now), $workConfig.state, hoursPerDay);
+    const vacYear = vacationHoursInRange(entries, startOfYear(now), endOfYear(now), $workConfig.state, hoursPerDay);
+
+    if (clockifyResult.status === 'fulfilled') {
+      const [today, week, month, year] = clockifyResult.value;
+      todayData = compareTodayHours(today.totalHours, vacToday, $workConfig);
+      weekData = compareWeekHours(week.totalHours, vacWeek, $workConfig);
+      monthData = compareMonthHours(month.totalHours, vacMonth, $workConfig);
+      yearData = compareYearHours(year.totalHours, vacYear, $workConfig);
       lastUpdated = new Date();
-    } catch (err) {
-      error = err instanceof Error ? err.message : 'Fehler beim Laden der Daten';
-      console.error('Error fetching time data:', err);
-    } finally {
-      isLoading = false;
+    } else {
+      error = clockifyResult.reason instanceof Error
+        ? clockifyResult.reason.message
+        : 'Fehler beim Laden der Clockify-Daten';
     }
+
+    // Vacation summary for the tile
+    vacationSummary = summarizeVacationYear(entries, currentYear, $workConfig.state, now);
+
+    isLoading = false;
   }
 
   /**
@@ -151,6 +184,17 @@
       </button>
     </div>
 
+    <!-- Vacation Tile -->
+    <VacationTile
+      year={new Date().getFullYear()}
+      summary={vacationSummary}
+      budget={$workConfig.vacationBudget}
+      isLoading={$vacations.isLoading}
+      error={vacationError}
+      onRetry={fetchTimeData}
+      onClick={() => goto('/urlaub')}
+    />
+
     <!-- Main Card -->
     {#if isLoading}
       <div class="loading-card">
@@ -184,6 +228,11 @@
           <div class="stat">
             <div class="stat-label">Ist</div>
             <div class="stat-value">{formatHours(currentData.actualHours)}</div>
+            {#if currentData.vacationHours > 0}
+              <div class="stat-sub">
+                {formatHours(currentData.clockifyHours)} Clockify + {formatHours(currentData.vacationHours)} Urlaub
+              </div>
+            {/if}
           </div>
         </div>
 
@@ -399,6 +448,12 @@
     font-size: 1.5rem;
     font-weight: 700;
     color: #2d3748;
+  }
+
+  .stat-sub {
+    font-size: 0.7rem;
+    color: #718096;
+    margin-top: 0.25rem;
   }
 
   .info-grid {
