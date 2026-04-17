@@ -85,7 +85,9 @@
         <button type="button" class="btn-secondary" on:click={loadAll}>Erneut versuchen</button>
       </div>
     {:else}
-      <VacationList entries={allEntries} onDelete={handleDelete} />
+      <div class="list-card">
+        <VacationList entries={allEntries} onDelete={handleDelete} />
+      </div>
     {/if}
   </div>
 
@@ -171,5 +173,12 @@
 
   .info.error {
     color: #e53e3e;
+  }
+
+  .list-card {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   }
 </style>
