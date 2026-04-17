@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { countVacationDaysInYear, summarizeVacationYear } from './vacation';
+import { countVacationDaysInYear, summarizeVacationYear, vacationHoursInRange } from './vacation';
 
 describe('countVacationDaysInYear', () => {
   it('counts working days only (Mo–Fr, no holidays) within a single year', () => {
@@ -111,5 +111,46 @@ describe('summarizeVacationYear', () => {
   it('returns zeros for an empty list', () => {
     const summary = summarizeVacationYear([], 2026, 'W', TODAY);
     expect(summary).toEqual({ taken: 0, planned: 0, total: 0 });
+  });
+});
+
+describe('vacationHoursInRange', () => {
+  it('returns hoursPerDay * working days in the range', () => {
+    // Week 2026-07-20 (Mo) to 2026-07-26 (So): vacation 20.-22.07 = 3 days
+    const entries = [{ start: '2026-07-20', end: '2026-07-22' }];
+    const hours = vacationHoursInRange(
+      entries,
+      new Date(2026, 6, 20),
+      new Date(2026, 6, 26),
+      'W',
+      8 // hoursPerDay
+    );
+    expect(hours).toBe(24);
+  });
+
+  it('clips entries that extend beyond the range', () => {
+    // Entry: 2026-07-20 - 2026-07-31 (10 working days)
+    // Range: only 2026-07-20 - 2026-07-24 (5 working days) → 40h
+    const entries = [{ start: '2026-07-20', end: '2026-07-31' }];
+    const hours = vacationHoursInRange(
+      entries,
+      new Date(2026, 6, 20),
+      new Date(2026, 6, 24),
+      'W',
+      8
+    );
+    expect(hours).toBe(40);
+  });
+
+  it('returns 0 when no entries overlap', () => {
+    const entries = [{ start: '2026-03-02', end: '2026-03-06' }];
+    const hours = vacationHoursInRange(
+      entries,
+      new Date(2026, 6, 20),
+      new Date(2026, 6, 26),
+      'W',
+      8
+    );
+    expect(hours).toBe(0);
   });
 });

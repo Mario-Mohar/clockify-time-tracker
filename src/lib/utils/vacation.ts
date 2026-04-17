@@ -72,3 +72,22 @@ export function summarizeVacationYear(
 
   return { taken, planned, total: taken + planned };
 }
+
+export function vacationHoursInRange(
+  entries: Pick<VacationEntry, 'start' | 'end'>[],
+  rangeStart: Date,
+  rangeEnd: Date,
+  state: AustrianState,
+  hoursPerDay: number
+): number {
+  let total = 0;
+  for (const entry of entries) {
+    const start = parseDate(entry.start);
+    const end = parseDate(entry.end);
+    const clipStart = start > rangeStart ? start : rangeStart;
+    const clipEnd = end < rangeEnd ? end : rangeEnd;
+    if (clipStart > clipEnd) continue;
+    total += countWorkingDaysWithHolidays(clipStart, clipEnd, state);
+  }
+  return total * hoursPerDay;
+}
