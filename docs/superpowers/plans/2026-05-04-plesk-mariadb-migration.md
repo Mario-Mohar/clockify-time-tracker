@@ -151,6 +151,7 @@ export const pool: Pool = mysql.createPool({
   connectionLimit: 10,
   dateStrings: true,
   timezone: 'Z',
+  charset: 'utf8mb4',
   waitForConnections: true,
 });
 
@@ -866,6 +867,7 @@ Optional: Deployment-Modus auf "Automatisch" (deployt bei jedem Push).
 3. **`initDb()`-Race:** Beim allerersten Request läuft das `CREATE TABLE` parallel — `IF NOT EXISTS` macht das idempotent, kein Race.
 4. **MariaDB-Version <10.5:** `CREATE INDEX IF NOT EXISTS` gibt's nicht — wir fangen `ER_DUP_KEYNAME` ab (Task 3). Sollte safe sein für alle Plesk-Versionen.
 5. **`note` leerer String vs NULL:** App speichert `''` als `NULL` (siehe `+server.ts:41`). SQL-Export setzt das konsequent auf `NULL`.
+6. **mysql2 Idle-Connection-Reaping unter Phusion Passenger:** Default mysql2-Pool evictet Idle-Connections nicht. Plesk-Passenger kann mehrere Worker-Prozesse spawnen → potenziell viele Idle-Sockets vs. MariaDB `wait_timeout` (Default 28800s). Falls nach Cutover sporadische `PROTOCOL_CONNECTION_LOST`-Errors auftauchen → in `db.ts` ergänzen: `idleTimeout: 60000, maxIdle: 2`. Nicht präventiv setzen — erst observen.
 
 **Type consistency:** `pool` (statt `sql`), `RowDataPacket`/`ResultSetHeader` korrekt aus `mysql2` typisiert, `result.insertId` und `result.affectedRows` einheitlich verwendet, `DbVacation` in beiden Files identisch typisiert.
 
