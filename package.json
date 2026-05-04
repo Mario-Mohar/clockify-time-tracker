@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "date-fns": "^4.1.0",
-    "postgres": "^3.4.9"
+    "mysql2": "^3.22.3"
   },
   "engines": {
     "node": ">=18.0.0"
