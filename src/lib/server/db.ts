@@ -1,24 +1,30 @@
 import mysql, { type Pool } from 'mysql2/promise';
 import { env } from '$env/dynamic/private';
 
-if (!env.DATABASE_URL) {
-  throw new Error('DATABASE_URL is not set');
-}
+let _pool: Pool | undefined;
 
-export const pool: Pool = mysql.createPool({
-  uri: env.DATABASE_URL,
-  connectionLimit: 10,
-  dateStrings: true,
-  timezone: 'Z',
-  charset: 'utf8mb4',
-  waitForConnections: true,
-});
+export function getPool(): Pool {
+  if (_pool) return _pool;
+  if (!env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is not set');
+  }
+  _pool = mysql.createPool({
+    uri: env.DATABASE_URL,
+    connectionLimit: 10,
+    dateStrings: true,
+    timezone: 'Z',
+    charset: 'utf8mb4',
+    waitForConnections: true,
+  });
+  return _pool;
+}
 
 let initPromise: Promise<void> | null = null;
 
 export function initDb(): Promise<void> {
   if (!initPromise) {
     initPromise = (async () => {
+      const pool = getPool();
       await pool.query(`
         CREATE TABLE IF NOT EXISTS vacations (
           id          INT AUTO_INCREMENT PRIMARY KEY,

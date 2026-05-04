@@ -1,5 +1,5 @@
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
-import { pool, initDb } from './db';
+import { getPool, initDb } from './db';
 
 export interface DbVacation extends RowDataPacket {
   id: number;
@@ -36,7 +36,7 @@ export async function listByYear(userId: string, year: number): Promise<Vacation
   await initDb();
   const yearStart = `${year}-01-01`;
   const yearEnd = `${year}-12-31`;
-  const [rows] = await pool.query<DbVacation[]>(
+  const [rows] = await getPool().query<DbVacation[]>(
     `SELECT ${SELECT_COLS}
        FROM vacations
       WHERE user_id = ?
@@ -53,7 +53,7 @@ export async function listByYear(userId: string, year: number): Promise<Vacation
  */
 export async function listAll(userId: string): Promise<VacationRow[]> {
   await initDb();
-  const [rows] = await pool.query<DbVacation[]>(
+  const [rows] = await getPool().query<DbVacation[]>(
     `SELECT ${SELECT_COLS}
        FROM vacations
       WHERE user_id = ?
@@ -73,7 +73,7 @@ export async function findOverlap(
   endDate: string
 ): Promise<VacationRow | null> {
   await initDb();
-  const [rows] = await pool.query<DbVacation[]>(
+  const [rows] = await getPool().query<DbVacation[]>(
     `SELECT ${SELECT_COLS}
        FROM vacations
       WHERE user_id = ?
@@ -91,12 +91,12 @@ export async function create(
   note: string | null
 ): Promise<VacationRow> {
   await initDb();
-  const [result] = await pool.query<ResultSetHeader>(
+  const [result] = await getPool().query<ResultSetHeader>(
     `INSERT INTO vacations (user_id, start_date, end_date, note)
      VALUES (?, ?, ?, ?)`,
     [userId, startDate, endDate, note]
   );
-  const [rows] = await pool.query<DbVacation[]>(
+  const [rows] = await getPool().query<DbVacation[]>(
     `SELECT ${SELECT_COLS} FROM vacations WHERE id = ?`,
     [result.insertId]
   );
@@ -105,7 +105,7 @@ export async function create(
 
 export async function remove(userId: string, id: number): Promise<boolean> {
   await initDb();
-  const [result] = await pool.query<ResultSetHeader>(
+  const [result] = await getPool().query<ResultSetHeader>(
     `DELETE FROM vacations WHERE id = ? AND user_id = ?`,
     [id, userId]
   );
