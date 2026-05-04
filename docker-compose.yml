@@ -1,15 +1,16 @@
 services:
-  postgres:
-    image: postgres:16
+  mariadb:
+    image: mariadb:11
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: zeiterfassung
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: zeiterfassung
+      MARIADB_USER: zeiterfassung
+      MARIADB_PASSWORD: zeiterfassung
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mariadb_data:/var/lib/mysql
 
 volumes:
-  postgres_data:
+  mariadb_data:
