@@ -25,7 +25,7 @@
 - `src/lib/server/vacations.ts` — alle 5 Query-Funktionen von Tagged-Templates auf parametrisierte `mysql2`-Queries umschreiben
 - `docker-compose.yml` — Postgres-Service durch MariaDB-Service ersetzen
 - `DEPLOYMENT.md` — Railway-Anleitung durch Plesk-Anleitung ersetzen
-- `.env.example` (neu, falls nicht vorhanden) — `DATABASE_URL`-Format dokumentieren
+- `.env.example` — vorhandene Postgres-URL durch MariaDB-URL ersetzen (Datei existiert bereits mit Railway-Hinweis)
 
 **Create:**
 - `migration/2026-05-04-vacations-railway-export.sql` — exportierte Daten von Railway, MariaDB-INSERT-Format (für phpMyAdmin-Import)
@@ -431,8 +431,15 @@ mkdir -p migration
 
 - [ ] **Step 2: Daten von Railway-Postgres holen**
 
+> **Voraussetzung:** `$RAILWAY_DATABASE_URL` muss im Shell-Env gesetzt sein (in der Form `postgresql://USER:PASS@HOST:PORT/DB` aus dem Railway-Dashboard → Postgres-Service → Connect). Bewusst NICHT in den Plan committed.
+>
+> ```bash
+> export RAILWAY_DATABASE_URL='postgresql://...'
+> ```
+
 ```bash
-docker run --rm postgres:16 psql 'postgresql://postgres:msjdRUNOOSLJyKBBopcAgJlYDUranjjN@trolley.proxy.rlwy.net:14302/railway' \
+docker run --rm -e PGURL="$RAILWAY_DATABASE_URL" postgres:16 \
+  psql "$PGURL" \
   -c "SELECT id, user_id, to_char(start_date,'YYYY-MM-DD') AS start_date, to_char(end_date,'YYYY-MM-DD') AS end_date, COALESCE(note,'') AS note, to_char(created_at,'YYYY-MM-DD HH24:MI:SS') AS created_at FROM vacations ORDER BY id;"
 ```
 
@@ -739,8 +746,8 @@ phpMyAdmin → Tabelle `vacations` → "Anzeigen" → 1 Zeile, Daten passen zum 
 Falls nach dem Export in Task 6 noch neue Einträge auf Railway entstanden sind (unwahrscheinlich, weil keiner aktiv genutzt hat):
 
 ```bash
-docker run --rm postgres:16 psql 'postgresql://postgres:msjdRUNOOSLJyKBBopcAgJlYDUranjjN@trolley.proxy.rlwy.net:14302/railway' \
-  -c "SELECT COUNT(*) FROM vacations;"
+docker run --rm -e PGURL="$RAILWAY_DATABASE_URL" postgres:16 \
+  psql "$PGURL" -c "SELECT COUNT(*) FROM vacations;"
 ```
 
 Erwartet: gleicher Count wie zuvor (1). Falls höher → erst diese Zeilen auch nach MariaDB übertragen, dann weitermachen.
