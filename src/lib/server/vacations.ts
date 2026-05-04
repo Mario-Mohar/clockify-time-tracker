@@ -1,9 +1,10 @@
-import { sql, initDb } from './db';
+import type { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { pool, initDb } from './db';
 
-export interface DbVacation {
+export interface DbVacation extends RowDataPacket {
   id: number;
   user_id: string;
-  start_date: string; // YYYY-MM-DD
+  start_date: string; // YYYY-MM-DD (dateStrings: true im Pool)
   end_date: string;
   note: string | null;
   created_at: string;
@@ -25,6 +26,9 @@ function rowToDto(row: DbVacation): VacationRow {
   };
 }
 
+const SELECT_COLS =
+  'id, user_id, start_date, end_date, note, created_at';
+
 /**
  * Alle Einträge eines Users, die das Jahr berühren.
  */
@@ -32,17 +36,15 @@ export async function listByYear(userId: string, year: number): Promise<Vacation
   await initDb();
   const yearStart = `${year}-01-01`;
   const yearEnd = `${year}-12-31`;
-  const rows = await sql<DbVacation[]>`
-    SELECT id, user_id,
-           to_char(start_date, 'YYYY-MM-DD') AS start_date,
-           to_char(end_date, 'YYYY-MM-DD') AS end_date,
-           note, created_at
-    FROM vacations
-    WHERE user_id = ${userId}
-      AND start_date <= ${yearEnd}
-      AND end_date >= ${yearStart}
-    ORDER BY start_date DESC
-  `;
+  const [rows] = await pool.query<DbVacation[]>(
+    `SELECT ${SELECT_COLS}
+       FROM vacations
+      WHERE user_id = ?
+        AND start_date <= ?
+        AND end_date >= ?
+      ORDER BY start_date DESC`,
+    [userId, yearEnd, yearStart]
+  );
   return rows.map(rowToDto);
 }
 
@@ -51,15 +53,13 @@ export async function listByYear(userId: string, year: number): Promise<Vacation
  */
 export async function listAll(userId: string): Promise<VacationRow[]> {
   await initDb();
-  const rows = await sql<DbVacation[]>`
-    SELECT id, user_id,
-           to_char(start_date, 'YYYY-MM-DD') AS start_date,
-           to_char(end_date, 'YYYY-MM-DD') AS end_date,
-           note, created_at
-    FROM vacations
-    WHERE user_id = ${userId}
-    ORDER BY start_date DESC
-  `;
+  const [rows] = await pool.query<DbVacation[]>(
+    `SELECT ${SELECT_COLS}
+       FROM vacations
+      WHERE user_id = ?
+      ORDER BY start_date DESC`,
+    [userId]
+  );
   return rows.map(rowToDto);
 }
 
@@ -73,16 +73,14 @@ export async function findOverlap(
   endDate: string
 ): Promise<VacationRow | null> {
   await initDb();
-  const rows = await sql<DbVacation[]>`
-    SELECT id, user_id,
-           to_char(start_date, 'YYYY-MM-DD') AS start_date,
-           to_char(end_date, 'YYYY-MM-DD') AS end_date,
-           note, created_at
-    FROM vacations
-    WHERE user_id = ${userId}
-      AND NOT (end_date < ${startDate} OR start_date > ${endDate})
-    LIMIT 1
-  `;
+  const [rows] = await pool.query<DbVacation[]>(
+    `SELECT ${SELECT_COLS}
+       FROM vacations
+      WHERE user_id = ?
+        AND NOT (end_date < ? OR start_date > ?)
+      LIMIT 1`,
+    [userId, startDate, endDate]
+  );
   return rows.length ? rowToDto(rows[0]) : null;
 }
 
@@ -93,23 +91,23 @@ export async function create(
   note: string | null
 ): Promise<VacationRow> {
   await initDb();
-  const rows = await sql<DbVacation[]>`
-    INSERT INTO vacations (user_id, start_date, end_date, note)
-    VALUES (${userId}, ${startDate}, ${endDate}, ${note})
-    RETURNING id, user_id,
-              to_char(start_date, 'YYYY-MM-DD') AS start_date,
-              to_char(end_date, 'YYYY-MM-DD') AS end_date,
-              note, created_at
-  `;
+  const [result] = await pool.query<ResultSetHeader>(
+    `INSERT INTO vacations (user_id, start_date, end_date, note)
+     VALUES (?, ?, ?, ?)`,
+    [userId, startDate, endDate, note]
+  );
+  const [rows] = await pool.query<DbVacation[]>(
+    `SELECT ${SELECT_COLS} FROM vacations WHERE id = ?`,
+    [result.insertId]
+  );
   return rowToDto(rows[0]);
 }
 
 export async function remove(userId: string, id: number): Promise<boolean> {
   await initDb();
-  const rows = await sql`
-    DELETE FROM vacations
-    WHERE id = ${id} AND user_id = ${userId}
-    RETURNING id
-  `;
-  return rows.count > 0;
+  const [result] = await pool.query<ResultSetHeader>(
+    `DELETE FROM vacations WHERE id = ? AND user_id = ?`,
+    [id, userId]
+  );
+  return result.affectedRows > 0;
 }
