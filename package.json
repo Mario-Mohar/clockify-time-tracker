@@ -1,0 +1,35 @@
+{
+  "name": "clockify-time-tracker",
+  "version": "1.0.0",
+  "description": "Minimalistic Clockify time tracking webapp with mobile-first design",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "node build/index.js"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-node": "^5.2.9",
+    "@sveltejs/kit": "^2.7.7",
+    "@sveltejs/vite-plugin-svelte": "^4.0.3",
+    "@vitest/ui": "^1.6.1",
+    "svelte": "^5.2.7",
+    "svelte-check": "^4.0.8",
+    "tslib": "^2.8.1",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11",
+    "vitest": "^1.6.1"
+  },
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "mysql2": "^3.22.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
