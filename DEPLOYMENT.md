@@ -1,141 +1,70 @@
-# Deployment Guide
+# Deployment
 
-## Railway Deployment
+Die App wird mit `@sveltejs/adapter-node` gebaut und läuft danach als
+gewöhnlicher Node-Prozess. Sie braucht genau zwei Dinge: eine MariaDB- oder
+MySQL-Datenbank und zwei Umgebungsvariablen.
 
-Diese App ist optimiert für Deployment auf Railway.app.
-
-### Voraussetzungen
-
-- GitHub Repository
-- Railway Account (https://railway.app)
-- Node.js 18+ lokal (für Tests)
-
-### Schritte
-
-1. **GitHub Repository vorbereiten**
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin <your-repo-url>
-   git push -u origin main
-   ```
-
-2. **Railway Projekt erstellen**
-   - Gehe zu https://railway.app
-   - Klicke "New Project"
-   - Wähle "Deploy from GitHub repo"
-   - Autorisiere Railway für GitHub
-   - Wähle dein Repository
-
-3. **Environment Variables (Optional)**
-
-   Railway erkennt automatisch Node.js und baut das Projekt.
-
-   Optional kannst du setzen:
-   - `NODE_ENV=production`
-   - `CLOCKIFY_API_KEY=xxx` (für Pre-Configuration)
-
-4. **Automatisches Deployment**
-
-   Railway baut und deployed automatisch bei jedem Push zu `main`.
-
-   - Build Command: `npm install && npm run build`
-   - Start Command: `node build/index.js`
-
-   Diese werden automatisch erkannt.
-
-5. **Domain konfigurieren**
-
-   Railway generiert automatisch eine Domain:
-   - Format: `your-project.railway.app`
-   - Eigene Domain kann unter Settings → Domains hinzugefügt werden
-
-### Lokales Testen
+## Build
 
 ```bash
-# Dependencies installieren
-npm install
-
-# Development Server
-npm run dev
-
-# Production Build
-npm run build
-
-# Production Server lokal testen
-npm start
+npm ci
+npm run build       # erzeugt build/
+node build/index.js # startet den Server, Standard-Port 3000
 ```
 
-### Build Verification
+## Umgebungsvariablen
 
-Vor dem Deployment solltest du lokal testen:
+| Variable | Zweck |
+|----------|-------|
+| `DATABASE_URL` | `mysql://user:passwort@host:3306/datenbank` |
+| `ORIGIN` | Die öffentliche URL, z. B. `https://zeit.example.com` |
 
-```bash
-npm run build
-npm start
-```
+`ORIGIN` ist nicht optional, sobald POST-Requests im Spiel sind: SvelteKit
+prüft bei Formular- und API-Posts die Herkunft und lehnt sie ohne passende
+`ORIGIN` mit `403 Cross-site POST form submissions are forbidden` ab.
 
-Öffne `http://localhost:3000` und prüfe, ob alles funktioniert.
+Der Clockify-API-Key gehört **nicht** hierher. Den gibt jede Person selbst in
+der App ein; er bleibt im Browser (`localStorage`) und wandert bei jedem
+Request als `X-Api-Key`-Header zum Server, der ihn nur an Clockify
+weiterreicht. Gespeichert wird er serverseitig nie.
 
-### Troubleshooting
+## Datenbank
 
-**Build Fehler:**
-- Prüfe Node Version (min. 18)
-- Lösche `node_modules` und `package-lock.json`, dann `npm install`
+Die Tabelle für die Urlaubsverwaltung legt die App beim ersten Start selbst an
+(`initDb()`). Es gibt keinen separaten Migrationsschritt und kein
+`migrate deploy` im Startpfad — ein leeres Schema genügt.
 
-**Runtime Fehler:**
-- Prüfe Railway Logs im Dashboard
-- Stelle sicher, dass Port richtig gebunden wird (Railway setzt automatisch `PORT`)
-
-**API Fehler:**
-- Prüfe ob Clockify API Key korrekt in der App eingegeben wurde
-- Teste API Key unter: https://app.clockify.me/user/settings
-
-### Staging Environment
-
-Für ein Staging Environment:
-
-1. Erstelle einen `develop` Branch
-2. Erstelle neues Railway Projekt für Staging
-3. Verbinde mit `develop` Branch
-4. Konfiguriere separate Environment Variables
-
-### Monitoring
-
-Railway bietet:
-- Real-time Logs
-- Metrics (CPU, Memory, Network)
-- Deploy History
-- Rollback Funktionalität
-
-Zugriff über: Railway Dashboard → Dein Projekt → Deployments
-
-### Kosten
-
-Railway bietet:
-- $5 monatlich Free Credit
-- Pay-as-you-go danach
-- Diese App sollte mit Free Tier auskommen (sehr leichtgewichtig)
-
-### Support
-
-Bei Problemen:
-- Railway Docs: https://docs.railway.app
-- Railway Discord: https://discord.gg/railway
-- GitHub Issues: Erstelle ein Issue in diesem Repo
-
-## PostgreSQL auf Railway
-
-Die Urlaubsverwaltung braucht eine Postgres-DB.
-
-1. Im Railway-Projekt: **+ New → Database → Add PostgreSQL**
-2. Railway verlinkt die `DATABASE_URL` automatisch mit dem App-Service (in den App-Variablen sichtbar)
-3. Keine weiteren Schritte — Schema wird beim ersten API-Request automatisch angelegt (`CREATE TABLE IF NOT EXISTS`)
-
-### Lokale Entwicklung
+Für lokale Entwicklung liegt eine `docker-compose.yml` bei:
 
 ```bash
 docker compose up -d
-npm run dev
+# DATABASE_URL=mysql://zeiterfassung:zeiterfassung@localhost:3306/zeiterfassung
 ```
+
+## Reverse Proxy
+
+Vor den Node-Prozess gehört ein Reverse Proxy, der TLS terminiert und auf den
+App-Port weiterleitet — nginx, Caddy, Traefik oder was der Hoster anbietet.
+Wichtig ist nur, dass `ORIGIN` exakt der öffentlichen URL entspricht, inklusive
+Schema und ohne abschließenden Slash.
+
+## Hosting mit Phusion Passenger (z. B. Plesk)
+
+Passenger lädt die Startdatei per `require()`, `adapter-node` erzeugt aber ein
+ES-Modul mit Top-Level-`await`. Dafür liegt `app.cjs` bei — ein CommonJS-Wrapper,
+der `build/index.js` dynamisch importiert:
+
+- Startdatei: `app.cjs`
+- Application Root: das Projektverzeichnis
+- Environment-Variablen: `DATABASE_URL` und `ORIGIN` wie oben
+
+Nach jedem Deploy einmal `npm ci`, `npm run build` und einen Neustart der App.
+
+## Fehlersuche
+
+Wenn die App startet, aber jeder Request 500 liefert, ist fast immer die
+Datenbankverbindung schuld. Der Pool wird bewusst erst beim ersten Zugriff
+aufgebaut (`lazy init`), damit der Build ohne `DATABASE_URL` durchläuft —
+Verbindungsfehler tauchen deshalb erst zur Laufzeit auf, nicht beim Bauen.
+
+Bei `403` auf POST-Requests stimmt `ORIGIN` nicht.
