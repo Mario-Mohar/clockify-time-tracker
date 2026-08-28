@@ -2,6 +2,7 @@
   "name": "clockify-time-tracker",
   "version": "1.0.0",
   "description": "Minimalistic Clockify time tracking webapp with mobile-first design",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
