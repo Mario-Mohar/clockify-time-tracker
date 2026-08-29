@@ -20,18 +20,19 @@
   $: startDate = parseDate(start);
   $: endDate = parseDate(end);
   $: dateInvalid = startDate && endDate && endDate < startDate;
-  $: preview = startDate && endDate && !dateInvalid
+  $: preview = startDate && endDate && !dateInvalid && $workConfig.workDays
     ? computePreview(startDate, endDate, $workConfig.state)
     : null;
 
   function computePreview(s: Date, e: Date, state: typeof $workConfig.state) {
-    const workingDays = countWorkingDaysWithHolidays(s, e, state);
+    const workDays = $workConfig.workDays;
+    const workingDays = countWorkingDaysWithHolidays(s, e, state, workDays);
     const totalDays = Math.floor((e.getTime() - s.getTime()) / 86_400_000) + 1;
+    // Die eigenen Arbeitstage, noch ohne Feiertagsabzug -- nicht pauschal Mo-Fr.
     let weekdays = 0;
     const cur = new Date(s);
     while (cur <= e) {
-      const dow = cur.getDay();
-      if (dow !== 0 && dow !== 6) weekdays++;
+      if (workDays.includes(cur.getDay())) weekdays++;
       cur.setDate(cur.getDate() + 1);
     }
     const holidays = getHolidayCount(s, e, state);

@@ -24,11 +24,11 @@
   }
 
   function yearSummary(year: number, items: VacationRow[]) {
-    return summarizeVacationYear(items, year, $workConfig.state, new Date());
+    return summarizeVacationYear(items, year, $workConfig.state, new Date(), $workConfig.workDays);
   }
 
   function entryDays(entry: VacationRow, year: number): number {
-    return countVacationDaysInYear(entry, year, $workConfig.state);
+    return countVacationDaysInYear(entry, year, $workConfig.state, $workConfig.workDays);
   }
 
   function isPast(entry: VacationRow): boolean {

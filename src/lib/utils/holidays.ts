@@ -3,7 +3,13 @@
  * Calculates public holidays for Austrian federal states (Bundesländer)
  */
 
-import { isWeekend, isSameDay } from 'date-fns';
+import { isSameDay } from 'date-fns';
+
+/**
+ * Arbeitstage als getDay()-Indizes: 0 = Sonntag ... 6 = Samstag.
+ * Voreinstellung Montag bis Freitag.
+ */
+export const DEFAULT_WORK_DAYS: number[] = [1, 2, 3, 4, 5];
 
 /**
  * Austrian federal states (Bundesländer)
@@ -191,27 +197,38 @@ export function isHoliday(date: Date, state: AustrianState): boolean {
 }
 
 /**
- * Check if a date is a working day (not weekend, not holiday)
+ * Check if a date is a working day for this contract (a day the person works,
+ * and not a public holiday).
+ *
+ * workDays ersetzt die frühere Wochenendprüfung: Samstag und Sonntag sind
+ * schlicht nicht in der Voreinstellung enthalten. Wer Dienstag bis Freitag
+ * arbeitet, bekommt damit auch den Montag frei gerechnet -- vorher zählte das
+ * Modell für jeden fünf Wochentage, egal was eingestellt war.
  */
-export function isWorkingDay(date: Date, state: AustrianState): boolean {
-  if (isWeekend(date)) return false;
+export function isWorkingDay(
+  date: Date,
+  state: AustrianState,
+  workDays: number[] = DEFAULT_WORK_DAYS
+): boolean {
+  if (!workDays.includes(date.getDay())) return false;
   if (isHoliday(date, state)) return false;
   return true;
 }
 
 /**
- * Count working days in a date range (excluding weekends and holidays)
+ * Count working days in a date range (excluding non-working weekdays and holidays)
  */
 export function countWorkingDaysWithHolidays(
   start: Date,
   end: Date,
-  state: AustrianState
+  state: AustrianState,
+  workDays: number[] = DEFAULT_WORK_DAYS
 ): number {
   let count = 0;
   const current = new Date(start);
 
   while (current <= end) {
-    if (isWorkingDay(current, state)) {
+    if (isWorkingDay(current, state, workDays)) {
       count++;
     }
     current.setDate(current.getDate() + 1);
