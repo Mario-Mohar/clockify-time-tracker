@@ -247,10 +247,17 @@ export function getHolidayCount(
   end: Date,
   state: AustrianState
 ): number {
-  const year = start.getFullYear();
-  const holidays = getAustrianHolidays(year, state);
-
-  return holidays.filter((h) => h.date >= start && h.date <= end).length;
+  // Ueber alle beruehrten Jahre, nicht nur ueber das Startjahr: der klassische
+  // Weihnachtsurlaub laeuft ueber den Jahreswechsel, und Neujahr sowie Heilige
+  // Drei Koenige gehoeren dann schon zum Folgejahr. isHoliday() und
+  // countWorkingDaysWithHolidays() fragen ohnehin je Datum nach dem Jahr.
+  let count = 0;
+  for (let year = start.getFullYear(); year <= end.getFullYear(); year++) {
+    count += getAustrianHolidays(year, state).filter(
+      (h) => h.date >= start && h.date <= end
+    ).length;
+  }
+  return count;
 }
 
 // Re-export types for backwards compatibility
