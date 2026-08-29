@@ -32,6 +32,16 @@ function loadConfig(): WorkConfig {
         config.vacationBudget = DEFAULT_CONFIG.vacationBudget;
         saveConfig(config);
       }
+      // Migration: aus der alten Anzahl workDaysPerWeek konkrete Wochentage
+      // machen. Vier Tage werden zu Montag bis Donnerstag -- eine Annahme, die
+      // in den Einstellungen mit zwei Klicks zu korrigieren ist, aber besser
+      // als weiterhin fuenf Tage zu unterstellen.
+      if (!Array.isArray(config.workDays)) {
+        const n = Number(config.workDaysPerWeek) || DEFAULT_CONFIG.workDays.length;
+        config.workDays = [1, 2, 3, 4, 5, 6, 0].slice(0, Math.max(1, Math.min(7, n)));
+        delete config.workDaysPerWeek;
+        saveConfig(config);
+      }
       return config;
     }
   } catch (error) {
@@ -75,11 +85,11 @@ function createConfigStore() {
     },
 
     /**
-     * Update work days per week
+     * Update which weekdays are worked (getDay() indices, 0 = Sunday)
      */
-    setWorkDays(days: number) {
+    setWorkDays(days: number[]) {
       update((config) => {
-        const newConfig = { ...config, workDaysPerWeek: days };
+        const newConfig = { ...config, workDays: [...days].sort((a, b) => a - b) };
         saveConfig(newConfig);
         return newConfig;
       });

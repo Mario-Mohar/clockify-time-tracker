@@ -1,4 +1,4 @@
-import { countWorkingDaysWithHolidays } from './holidays';
+import { countWorkingDaysWithHolidays, DEFAULT_WORK_DAYS } from './holidays';
 import type { AustrianState } from './holidays';
 
 export interface VacationEntry {
@@ -16,7 +16,8 @@ function parseDate(iso: string): Date {
 export function countVacationDaysInYear(
   entry: Pick<VacationEntry, 'start' | 'end'>,
   year: number,
-  state: AustrianState
+  state: AustrianState,
+  workDays: number[] = DEFAULT_WORK_DAYS
 ): number {
   const start = parseDate(entry.start);
   const end = parseDate(entry.end);
@@ -28,7 +29,7 @@ export function countVacationDaysInYear(
 
   if (rangeStart > rangeEnd) return 0;
 
-  return countWorkingDaysWithHolidays(rangeStart, rangeEnd, state);
+  return countWorkingDaysWithHolidays(rangeStart, rangeEnd, state, workDays);
 }
 
 export interface VacationSummary {
@@ -41,7 +42,8 @@ export function summarizeVacationYear(
   entries: Pick<VacationEntry, 'start' | 'end'>[],
   year: number,
   state: AustrianState,
-  today: Date
+  today: Date,
+  workDays: number[] = DEFAULT_WORK_DAYS
 ): VacationSummary {
   const yearStart = new Date(year, 0, 1);
   const yearEnd = new Date(year, 11, 31);
@@ -62,11 +64,11 @@ export function summarizeVacationYear(
     plannedStart.setDate(plannedStart.getDate() + 1);
 
     if (rangeStart <= takenEnd && rangeStart <= today) {
-      taken += countWorkingDaysWithHolidays(rangeStart, takenEnd, state);
+      taken += countWorkingDaysWithHolidays(rangeStart, takenEnd, state, workDays);
     }
     if (plannedStart <= rangeEnd) {
       const pStart = rangeStart > plannedStart ? rangeStart : plannedStart;
-      planned += countWorkingDaysWithHolidays(pStart, rangeEnd, state);
+      planned += countWorkingDaysWithHolidays(pStart, rangeEnd, state, workDays);
     }
   }
 
@@ -78,7 +80,8 @@ export function vacationHoursInRange(
   rangeStart: Date,
   rangeEnd: Date,
   state: AustrianState,
-  hoursPerDay: number
+  hoursPerDay: number,
+  workDays: number[] = DEFAULT_WORK_DAYS
 ): number {
   let total = 0;
   for (const entry of entries) {
@@ -87,7 +90,7 @@ export function vacationHoursInRange(
     const clipStart = start > rangeStart ? start : rangeStart;
     const clipEnd = end < rangeEnd ? end : rangeEnd;
     if (clipStart > clipEnd) continue;
-    total += countWorkingDaysWithHolidays(clipStart, clipEnd, state);
+    total += countWorkingDaysWithHolidays(clipStart, clipEnd, state, workDays);
   }
   return total * hoursPerDay;
 }

@@ -17,6 +17,7 @@
     formatHours,
     formatDifference,
     getWeekStart,
+    getHoursPerDay,
   } from '$lib/utils/calculations';
   import type { TimeComparison } from '$lib/utils/calculations';
   import { goto } from '$app/navigation';
@@ -83,15 +84,16 @@
 
     // Build comparisons from whichever data is available.
     const entries = $vacations.byYear[currentYear] ?? [];
-    const hoursPerDay = $workConfig.weeklyHours / $workConfig.workDaysPerWeek;
+    const hoursPerDay = getHoursPerDay($workConfig);
+    const workDays = $workConfig.workDays;
     const now = new Date();
     const weekStart = getWeekStart($workConfig);
     const weekEnd = endOfWeek(now, { weekStartsOn: $workConfig.startOfWeek === 'monday' ? 1 : 0 });
 
-    const vacToday = vacationHoursInRange(entries, now, now, $workConfig.state, hoursPerDay);
-    const vacWeek = vacationHoursInRange(entries, weekStart, weekEnd, $workConfig.state, hoursPerDay);
-    const vacMonth = vacationHoursInRange(entries, startOfMonth(now), endOfMonth(now), $workConfig.state, hoursPerDay);
-    const vacYear = vacationHoursInRange(entries, startOfYear(now), endOfYear(now), $workConfig.state, hoursPerDay);
+    const vacToday = vacationHoursInRange(entries, now, now, $workConfig.state, hoursPerDay, workDays);
+    const vacWeek = vacationHoursInRange(entries, weekStart, weekEnd, $workConfig.state, hoursPerDay, workDays);
+    const vacMonth = vacationHoursInRange(entries, startOfMonth(now), endOfMonth(now), $workConfig.state, hoursPerDay, workDays);
+    const vacYear = vacationHoursInRange(entries, startOfYear(now), endOfYear(now), $workConfig.state, hoursPerDay, workDays);
 
     if (clockifyResult.status === 'fulfilled') {
       const [today, week, month, year] = clockifyResult.value;
@@ -107,7 +109,7 @@
     }
 
     // Vacation summary for the tile
-    vacationSummary = summarizeVacationYear(entries, currentYear, $workConfig.state, now);
+    vacationSummary = summarizeVacationYear(entries, currentYear, $workConfig.state, now, workDays);
 
     isLoading = false;
   }

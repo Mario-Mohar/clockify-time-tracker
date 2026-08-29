@@ -10,20 +10,25 @@ import {
   endOfMonth,
   startOfYear,
   endOfYear,
-  isWeekend,
   format,
 } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
   type AustrianState,
+  DEFAULT_WORK_DAYS,
   countWorkingDaysWithHolidays,
   getMonthHolidays,
   getYearHolidays,
+  isWorkingDay,
 } from './holidays';
 
 export interface WorkConfig {
   weeklyHours: number; // e.g., 40
-  workDaysPerWeek: number; // e.g., 5
+  // Welche Wochentage gearbeitet werden, als getDay()-Indizes (0 = So ... 6 = Sa).
+  // Früher stand hier nur workDaysPerWeek, eine blosse Anzahl. Damit liess sich
+  // die Frage "ist dieser Tag ein Arbeitstag?" nicht beantworten, und das Soll
+  // zählte für jeden fünf Wochentage.
+  workDays: number[];
   startOfWeek: 'monday' | 'sunday'; // First day of week
   state: AustrianState; // Austrian federal state (for potential future use)
   vacationBudget: number; // Tage/Jahr, default 25
@@ -46,7 +51,7 @@ export interface TimeComparison {
  */
 export const DEFAULT_CONFIG: WorkConfig = {
   weeklyHours: 40,
-  workDaysPerWeek: 5,
+  workDays: DEFAULT_WORK_DAYS,
   startOfWeek: 'monday',
   state: 'W', // Default to Wien (Austria)
   vacationBudget: 25,
@@ -56,23 +61,27 @@ export const DEFAULT_CONFIG: WorkConfig = {
  * Calculate required hours per day
  */
 export function getHoursPerDay(config: WorkConfig): number {
-  return config.weeklyHours / config.workDaysPerWeek;
+  const days = config.workDays?.length || DEFAULT_WORK_DAYS.length;
+  return config.weeklyHours / days;
 }
 
 /**
  * Count working days in a date range (excluding weekends and holidays)
  */
 export function countWorkingDays(start: Date, end: Date, config: WorkConfig): number {
-  return countWorkingDaysWithHolidays(start, end, config.state);
+  return countWorkingDaysWithHolidays(start, end, config.state, config.workDays ?? DEFAULT_WORK_DAYS);
 }
 
 /**
  * Calculate required hours for today
  */
-export function calculateRequiredToday(config: WorkConfig): number {
-  const today = new Date();
-  if (isWeekend(today)) {
-    return 0; // No work on weekends
+export function calculateRequiredToday(config: WorkConfig, date: Date = new Date()): number {
+  const today = date;
+  // Wie Woche, Monat und Jahr: freie Wochentage UND Feiertage zählen nicht.
+  // Vorher wurde hier nur aufs Wochenende geprüft, ein Feiertag verlangte also
+  // einen vollen Arbeitstag, den die Wochenkachel daneben schon abgezogen hatte.
+  if (!isWorkingDay(today, config.state, config.workDays ?? DEFAULT_WORK_DAYS)) {
+    return 0;
   }
   return getHoursPerDay(config);
 }
@@ -88,8 +97,12 @@ export function calculateRequiredWeek(config: WorkConfig, date: Date = new Date(
     weekStartsOn: config.startOfWeek === 'monday' ? 1 : 0,
   });
 
+  // Dieselbe Formel wie Monat und Jahr. Die frühere fest verdrahtete 5 stimmte
+  // nur, solange auch tatsächlich fünf Tage gearbeitet wurden; jetzt weiss
+  // countWorkingDays, welche Tage das sind, und die drei Kacheln sagen
+  // dasselbe.
   const workDays = countWorkingDays(weekStart, weekEnd, config);
-  return (workDays / 5) * config.weeklyHours; // Normalize to config
+  return workDays * getHoursPerDay(config);
 }
 
 /**

@@ -10,19 +10,33 @@
   import { STATE_NAMES, type AustrianState } from '$lib/utils/holidays';
 
   let weeklyHours = $workConfig.weeklyHours;
-  let workDays = $workConfig.workDaysPerWeek;
+  let workDays = [...$workConfig.workDays];
   let startOfWeek = $workConfig.startOfWeek;
   let state = $workConfig.state;
 
   let isSaved = false;
 
-  $: hoursPerDay = weeklyHours / workDays;
+  $: hoursPerDay = workDays.length ? weeklyHours / workDays.length : 0;
+
+  // getDay()-Reihenfolge, aber montagsbeginnend angezeigt
+  const WEEKDAYS: { value: number; label: string }[] = [
+    { value: 1, label: 'Mo' }, { value: 2, label: 'Di' }, { value: 3, label: 'Mi' },
+    { value: 4, label: 'Do' }, { value: 5, label: 'Fr' }, { value: 6, label: 'Sa' },
+    { value: 0, label: 'So' },
+  ];
+
+  function toggleWorkDay(day: number) {
+    workDays = workDays.includes(day)
+      ? workDays.filter((d) => d !== day)
+      : [...workDays, day].sort((a, b) => a - b);
+  }
 
   function handleSave() {
+    if (workDays.length === 0) return;
     workConfig.setConfig({
       ...$workConfig,
       weeklyHours,
-      workDaysPerWeek: workDays,
+      workDays,
       startOfWeek,
       state,
     });
@@ -37,7 +51,7 @@
     if (confirm('Möchten Sie die Einstellungen auf Standardwerte zurücksetzen?')) {
       workConfig.reset();
       weeklyHours = $workConfig.weeklyHours;
-      workDays = $workConfig.workDaysPerWeek;
+      workDays = [...$workConfig.workDays];
       startOfWeek = $workConfig.startOfWeek;
       state = $workConfig.state;
     }
@@ -84,19 +98,27 @@
         </div>
 
         <div class="form-group">
-          <label for="work-days">
-            Arbeitstage pro Woche
-            <span class="label-hint">Anzahl der Arbeitstage</span>
-          </label>
-          <input
-            id="work-days"
-            type="number"
-            bind:value={workDays}
-            min="1"
-            max="7"
-            step="1"
-            required
-          />
+          <fieldset class="weekday-fieldset">
+            <legend>
+              Arbeitstage
+              <span class="label-hint">Welche Wochentage du arbeitest</span>
+            </legend>
+            <div class="weekday-row">
+              {#each WEEKDAYS as day (day.value)}
+                <label class="weekday" class:selected={workDays.includes(day.value)}>
+                  <input
+                    type="checkbox"
+                    checked={workDays.includes(day.value)}
+                    on:change={() => toggleWorkDay(day.value)}
+                  />
+                  {day.label}
+                </label>
+              {/each}
+            </div>
+            {#if workDays.length === 0}
+              <p class="weekday-warning">Mindestens ein Arbeitstag muss ausgewählt sein.</p>
+            {/if}
+          </fieldset>
         </div>
 
         <div class="form-group">
@@ -172,6 +194,41 @@
 </div>
 
 <style>
+  .weekday-fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .weekday-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .weekday {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--border, #ccc);
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .weekday.selected {
+    border-color: var(--accent, #3b82f6);
+    font-weight: 600;
+  }
+
+  .weekday-warning {
+    margin: 0.5rem 0 0;
+    color: var(--danger, #dc2626);
+    font-size: 0.85rem;
+  }
+
   .settings {
     min-height: 100vh;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

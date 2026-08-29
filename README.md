@@ -30,9 +30,12 @@ und du zwei Wochen Urlaub hattest. Genau diese Rechnung macht diese App.
   <img src="docs/berechnung.png" alt="Diagramm: Soll ergibt sich aus Kalendertagen minus Wochenenden minus Feiertagen mal Stunden pro Tag. Ist ergibt sich aus Clockify-Stunden plus Urlaubsstunden. Die Differenz wird als Minusstunden, im Rahmen oder Überstunden eingefärbt." width="900">
 </p>
 
-**Soll** sind die Arbeitstage im Zeitraum — Wochenenden und Feiertage fallen
-raus — multipliziert mit deinen Stunden pro Tag (Wochenstunden geteilt durch
-Arbeitstage pro Woche).
+**Soll** sind die Arbeitstage im Zeitraum — Tage, an denen du nicht arbeitest,
+und Feiertage fallen raus — multipliziert mit deinen Stunden pro Tag
+(Wochenstunden geteilt durch die Anzahl deiner Arbeitstage). Welche Wochentage
+das sind, stellst du selbst ein; wer Montag bis Donnerstag arbeitet, bekommt
+den Freitag nicht als Sollzeit angerechnet, und ein Feiertag zieht nur ab, wenn
+er auf einen deiner Arbeitstage fällt.
 
 **Ist** sind die in Clockify erfassten Stunden plus die Stunden aus
 eingetragenem Urlaub. Ein Urlaubstag zählt als voller Arbeitstag, sonst würde
@@ -49,7 +52,7 @@ jede Urlaubswoche als Minusstunden erscheinen.
 - **Urlaubsverwaltung** — Zeiträume mit Notiz anlegen, Überschneidungen werden
   abgelehnt; die App zählt genommene, geplante und verbleibende Tage gegen dein
   Jahreskontingent
-- **Arbeitszeitmodell** — Wochenstunden, Arbeitstage pro Woche und
+- **Arbeitszeitmodell** — Wochenstunden, die einzelnen Arbeitstage und
   Urlaubsanspruch sind frei einstellbar (Vorgabe: 40 h, 5 Tage, 25 Tage Urlaub)
 - **Mobile-first** — gebaut für das Telefon, funktioniert auch am Desktop
 - **Der API-Key bleibt bei dir** — er liegt im `localStorage` deines Browsers,
