@@ -7,6 +7,7 @@
   import { auth } from '$lib/stores/auth';
   import VacationList from '$lib/components/VacationList.svelte';
   import VacationModal from '$lib/components/VacationModal.svelte';
+  import type { VacationKind } from '$lib/utils/vacation';
 
   let allEntries: VacationRow[] = [];
   let isLoading = true;
@@ -29,8 +30,14 @@
     }
   }
 
-  async function handleSave(start: string, end: string, note: string | null) {
-    await vacations.addEntry(start, end, note);
+  async function handleSave(
+    start: string,
+    end: string,
+    note: string | null,
+    fraction: number,
+    kind: VacationKind
+  ) {
+    await vacations.addEntry(start, end, note, fraction, kind);
     await loadAll();
   }
 

@@ -1,6 +1,11 @@
 <script lang="ts">
   import { workConfig } from '$lib/stores/config';
-  import { summarizeVacationYear, countVacationDaysInYear } from '$lib/utils/vacation';
+  import {
+    summarizeVacationYear,
+    countVacationDaysInYear,
+    entryKind,
+    formatDays,
+  } from '$lib/utils/vacation';
   import type { VacationRow } from '$lib/api/vacations';
 
   export let entries: VacationRow[];
@@ -44,8 +49,13 @@
     return `${d}.${m}.${y}`;
   }
 
+  function kindLabel(entry: VacationRow): string {
+    return entryKind(entry) === 'sick' ? 'Krankenstand' : 'Urlaub';
+  }
+
   async function handleDelete(entry: VacationRow) {
-    if (!confirm(`Urlaub ${formatDate(entry.start)} – ${formatDate(entry.end)} wirklich löschen?`)) return;
+    const what = kindLabel(entry);
+    if (!confirm(`${what} ${formatDate(entry.start)} – ${formatDate(entry.end)} wirklich löschen?`)) return;
     await onDelete(entry.id);
   }
 </script>
@@ -63,7 +73,10 @@
       <header class="year-header">
         <span class="year">{group.year}</span>
         <span class="summary">
-          {s.taken} genommen{s.planned > 0 ? ` · ${s.planned} geplant` : ''}
+          {formatDays(s.taken)} genommen{s.planned > 0 ? ` · ${formatDays(s.planned)} geplant` : ''}{s.sickTotal >
+          0
+            ? ` · ${formatDays(s.sickTotal)} krank`
+            : ''}
         </span>
       </header>
       <ul class="entries">
@@ -73,14 +86,17 @@
           <li class="entry" class:past>
             <div class="entry-main">
               <div class="dates">
+                {#if entryKind(entry) === 'sick'}
+                  <span class="kind-tag">Krankenstand</span>
+                {/if}
                 {formatDate(entry.start)} – {formatDate(entry.end)}
               </div>
               {#if entry.note}
                 <div class="note">{entry.note}</div>
               {/if}
             </div>
-            <span class="badge" class:past>
-              {days} {days === 1 ? 'Tag' : 'Tage'}
+            <span class="badge" class:past class:sick={entryKind(entry) === 'sick'}>
+              {formatDays(days)} {days === 1 ? 'Tag' : 'Tage'}
             </span>
             <button type="button" class="delete" on:click={() => handleDelete(entry)} aria-label="Löschen">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -142,6 +158,23 @@
     font-weight: 700;
     color: #2d3748;
     letter-spacing: 0.02em;
+  }
+
+  .kind-tag {
+    display: inline-block;
+    margin-right: 0.4rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 0.4rem;
+    background: #fde8e8;
+    color: #9b2c2c;
+    font-size: 0.72rem;
+    font-weight: 600;
+    vertical-align: 1px;
+  }
+
+  .badge.sick {
+    background: #fde8e8;
+    color: #9b2c2c;
   }
 
   .summary {

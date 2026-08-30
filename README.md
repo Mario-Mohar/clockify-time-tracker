@@ -38,8 +38,9 @@ den Freitag nicht als Sollzeit angerechnet, und ein Feiertag zieht nur ab, wenn
 er auf einen deiner Arbeitstage fällt.
 
 **Ist** sind die in Clockify erfassten Stunden plus die Stunden aus
-eingetragenem Urlaub. Ein Urlaubstag zählt als voller Arbeitstag, sonst würde
-jede Urlaubswoche als Minusstunden erscheinen.
+eingetragenem Urlaub und Krankenstand. Beides zählt als voller Arbeitstag,
+sonst würde jede Urlaubs- oder Krankenwoche als Minusstunden erscheinen. Ein
+halber Tag zählt als halber.
 
 **Differenz** ist Ist minus Soll, mit einer Toleranz von einer Stunde: darüber
 Überstunden, darunter Minusstunden, dazwischen „im Rahmen".
@@ -52,6 +53,11 @@ jede Urlaubswoche als Minusstunden erscheinen.
 - **Urlaubsverwaltung** — Zeiträume mit Notiz anlegen, Überschneidungen werden
   abgelehnt; die App zählt genommene, geplante und verbleibende Tage gegen dein
   Jahreskontingent
+- **Halbe Tage** — bei einem Eintrag über einen einzelnen Tag lässt sich „halber
+  Tag" ankreuzen. Sechs halbe Tage verbrauchen drei, nicht sechs
+- **Krankenstand** — als eigener Eintragstyp neben dem Urlaub. Für die
+  Sollstunden zählt er gleich, gegen das Urlaubskontingent zählt er nicht: er
+  wird getrennt ausgewiesen und nicht begrenzt
 - **Arbeitszeitmodell** — Wochenstunden, die einzelnen Arbeitstage und
   Urlaubsanspruch sind frei einstellbar (Vorgabe: 40 h, 5 Tage, 25 Tage Urlaub)
 - **Mobile-first** — gebaut für das Telefon, funktioniert auch am Desktop

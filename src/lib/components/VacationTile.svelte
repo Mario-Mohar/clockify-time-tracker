@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { VacationSummary } from '$lib/utils/vacation';
+  import { formatDays, type VacationSummary } from '$lib/utils/vacation';
 
   export let year: number;
   export let summary: VacationSummary | null;
@@ -32,23 +32,36 @@
     {:else if summary}
       <div class="stats">
         <div class="stat">
-          <div class="value">{summary.taken}</div>
+          <div class="value">{formatDays(summary.taken)}</div>
           <div class="label">Genommen</div>
         </div>
         <div class="stat">
-          <div class="value">{summary.planned}</div>
+          <div class="value">{formatDays(summary.planned)}</div>
           <div class="label">Geplant</div>
         </div>
         <div class="stat" class:negative={isNegative}>
-          <div class="value">{available}</div>
+          <div class="value">{available === null ? '–' : formatDays(available)}</div>
           <div class="label">Verfügbar</div>
         </div>
       </div>
+
+      {#if summary.sickTotal > 0}
+        <!-- Krankenstand hat kein Kontingent, das dieses Werkzeug kennen
+             sollte: nur zählen, nicht begrenzen. Deshalb eine eigene Zeile
+             und keine vierte Spalte neben "Verfügbar". -->
+        <div class="sick">{formatDays(summary.sickTotal)} Tage Krankenstand</div>
+      {/if}
     {/if}
   </button>
 {/if}
 
 <style>
+  .sick {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: #9b2c2c;
+  }
+
   .tile {
     display: block;
     width: 100%;

@@ -1,8 +1,12 @@
+import type { VacationKind } from '$lib/utils/vacation';
+
 export interface VacationRow {
   id: number;
   start: string;
   end: string;
   note: string | null;
+  fraction: number;
+  kind: VacationKind;
 }
 
 export interface VacationApiError {
@@ -44,11 +48,17 @@ export function createVacationsApi(apiKey: string) {
       return body.vacations;
     },
 
-    async create(start: string, end: string, note: string | null): Promise<VacationRow> {
+    async create(
+      start: string,
+      end: string,
+      note: string | null,
+      fraction: number = 1,
+      kind: VacationKind = 'vacation'
+    ): Promise<VacationRow> {
       const res = await fetch(`/api/vacations`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ start, end, note }),
+        body: JSON.stringify({ start, end, note, fraction, kind }),
       });
       const body = await handle<{ vacation: VacationRow }>(res);
       return body.vacation;
