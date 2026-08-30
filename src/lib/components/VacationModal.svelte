@@ -1,15 +1,32 @@
 <script lang="ts">
   import { workConfig } from '$lib/stores/config';
   import { countWorkingDaysWithHolidays, getHolidayCount } from '$lib/utils/holidays';
+  import { formatDays, type VacationKind } from '$lib/utils/vacation';
 
-  export let onSave: (start: string, end: string, note: string | null) => Promise<void>;
+  export let onSave: (
+    start: string,
+    end: string,
+    note: string | null,
+    fraction: number,
+    kind: VacationKind
+  ) => Promise<void>;
   export let onClose: () => void;
 
   let start = '';
   let end = '';
   let note = '';
+  let kind: VacationKind = 'vacation';
+  let halfDay = false;
   let submitting = false;
   let errorMessage = '';
+
+  // Ein halber Tag ergibt nur an einem einzelnen Tag Sinn. Der Umschalter
+  // erscheint deshalb erst, wenn Anfang und Ende zusammenfallen -- und ein
+  // schon gesetzter Haken fällt weg, sobald daraus ein Zeitraum wird, statt
+  // erst beim Speichern abgelehnt zu werden.
+  $: singleDay = start !== '' && start === end;
+  $: if (!singleDay && halfDay) halfDay = false;
+  $: fraction = singleDay && halfDay ? 0.5 : 1;
 
   function parseDate(iso: string): Date | null {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
@@ -44,12 +61,17 @@
     submitting = true;
     errorMessage = '';
     try {
-      await onSave(start, end, note.trim() || null);
+      await onSave(start, end, note.trim() || null, fraction, kind);
       onClose();
     } catch (err: unknown) {
-      const e = err as { status?: number; message?: string; conflictsWith?: { start: string; end: string } };
+      const e = err as {
+        status?: number;
+        message?: string;
+        conflictsWith?: { start: string; end: string; kind?: VacationKind };
+      };
       if (e.status === 409 && e.conflictsWith) {
-        errorMessage = `Überlappt mit Eintrag ${e.conflictsWith.start} – ${e.conflictsWith.end}`;
+        const was = e.conflictsWith.kind === 'sick' ? 'Krankenstand' : 'Urlaub';
+        errorMessage = `Überlappt mit ${was} ${e.conflictsWith.start} – ${e.conflictsWith.end}`;
       } else {
         errorMessage = e.message || 'Speichern fehlgeschlagen';
       }
@@ -62,8 +84,19 @@
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <div class="backdrop" on:click={onClose} on:keydown={(e) => e.key === 'Escape' && onClose()} role="presentation">
   <!-- svelte-ignore a11y-click-events-have-key-events -->
-  <div class="modal" on:click|stopPropagation role="dialog" aria-label="Urlaub hinzufügen" tabindex="-1">
-    <h2>Urlaub hinzufügen</h2>
+  <div class="modal" on:click|stopPropagation role="dialog" aria-label="Eintrag hinzufügen" tabindex="-1">
+    <h2>{kind === 'sick' ? 'Krankenstand' : 'Urlaub'} hinzufügen</h2>
+
+    <div class="kinds">
+      <label class="kind">
+        <input type="radio" bind:group={kind} value="vacation" />
+        Urlaub
+      </label>
+      <label class="kind">
+        <input type="radio" bind:group={kind} value="sick" />
+        Krankenstand
+      </label>
+    </div>
 
     <label>
       Von
@@ -75,18 +108,29 @@
       <input type="date" bind:value={end} required />
     </label>
 
+    {#if singleDay}
+      <label class="half">
+        <input type="checkbox" bind:checked={halfDay} />
+        Halber Tag
+      </label>
+    {/if}
+
     {#if dateInvalid}
       <div class="error">Das Bis-Datum muss ≥ Von-Datum sein.</div>
     {:else if preview}
       <div class="preview">
-        → {preview.workingDays} Arbeitstage ({preview.weekdays} Werktage,
+        → {formatDays(preview.workingDays * fraction)} Arbeitstage ({preview.weekdays} Werktage,
         {#if preview.holidays > 0}davon {preview.holidays} Feiertag{preview.holidays > 1 ? 'e' : ''}{:else}keine Feiertage{/if})
       </div>
     {/if}
 
     <label>
       Notiz (optional)
-      <textarea bind:value={note} rows="2" placeholder="z.B. Sommerurlaub"></textarea>
+      <textarea
+        bind:value={note}
+        rows="2"
+        placeholder={kind === 'sick' ? 'z.B. Grippe' : 'z.B. Sommerurlaub'}
+      ></textarea>
     </label>
 
     {#if errorMessage}
@@ -108,6 +152,25 @@
 </div>
 
 <style>
+  .kinds {
+    display: flex;
+    gap: 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .kind,
+  .half {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+
+  .half {
+    margin-bottom: 0.5rem;
+  }
+
   .backdrop {
     position: fixed;
     inset: 0;

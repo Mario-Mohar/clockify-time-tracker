@@ -1,5 +1,6 @@
 import { writable, get } from 'svelte/store';
 import { createVacationsApi, type VacationRow, type VacationApiError } from '$lib/api/vacations';
+import type { VacationKind } from '$lib/utils/vacation';
 import { auth } from './auth';
 
 interface VacationsState {
@@ -32,8 +33,14 @@ function createStore() {
     }
   }
 
-  async function addEntry(start: string, end: string, note: string | null): Promise<VacationRow> {
-    const row = await getApi().create(start, end, note);
+  async function addEntry(
+    start: string,
+    end: string,
+    note: string | null,
+    fraction: number = 1,
+    kind: VacationKind = 'vacation'
+  ): Promise<VacationRow> {
+    const row = await getApi().create(start, end, note, fraction, kind);
     // Reload affected years
     const startYear = Number(row.start.slice(0, 4));
     const endYear = Number(row.end.slice(0, 4));

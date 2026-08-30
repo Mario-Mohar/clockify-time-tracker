@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { countVacationDaysInYear, summarizeVacationYear, vacationHoursInRange } from './vacation';
+import {
+  countVacationDaysInYear,
+  summarizeVacationYear,
+  vacationHoursInRange,
+  entryFraction,
+  entryKind,
+  formatDays,
+} from './vacation';
 
 describe('countVacationDaysInYear', () => {
   it('counts working days only (Mo–Fr, no holidays) within a single year', () => {
@@ -110,7 +117,10 @@ describe('summarizeVacationYear', () => {
 
   it('returns zeros for an empty list', () => {
     const summary = summarizeVacationYear([], 2026, 'W', TODAY);
-    expect(summary).toEqual({ taken: 0, planned: 0, total: 0 });
+    expect(summary).toEqual({
+      taken: 0, planned: 0, total: 0,
+      sickTaken: 0, sickPlanned: 0, sickTotal: 0,
+    });
   });
 });
 
@@ -152,5 +162,93 @@ describe('vacationHoursInRange', () => {
       8
     );
     expect(hours).toBe(0);
+  });
+});
+
+describe('halbe Tage', () => {
+  // 21.07.2026 ist ein Dienstag, also ein ganz normaler Arbeitstag.
+  const HALBER_TAG = { start: '2026-07-21', end: '2026-07-21', fraction: 0.5 };
+
+  it('zählt einen halben Tag als 0,5', () => {
+    expect(countVacationDaysInYear(HALBER_TAG, 2026, 'W')).toBe(0.5);
+  });
+
+  it('liest einen fehlenden Bruchteil als ganzen Tag', () => {
+    // Sonst würde aus jedem bestehenden Eintrag rückwirkend ein halber.
+    expect(countVacationDaysInYear({ start: '2026-07-21', end: '2026-07-21' }, 2026, 'W')).toBe(1);
+    expect(entryFraction({ start: '2026-07-21', end: '2026-07-21' })).toBe(1);
+  });
+
+  it('ignoriert einen Bruchteil über mehrere Tage', () => {
+    // Ein halber Tag über zwei Wochen ergibt keinen Sinn; die Zeile kann aber
+    // von Hand in der Datenbank stehen.
+    const range = { start: '2026-07-20', end: '2026-07-24', fraction: 0.5 };
+    expect(entryFraction(range)).toBe(1);
+    expect(countVacationDaysInYear(range, 2026, 'W')).toBe(5);
+  });
+
+  it('summiert sechs halbe Tage zu drei', () => {
+    // Genau der Fall aus dem Issue: verbraucht sind drei Tage, nicht sechs.
+    const tage = ['2026-07-06', '2026-07-07', '2026-07-08', '2026-07-09', '2026-07-10', '2026-07-13'];
+    const entries = tage.map((d) => ({ start: d, end: d, fraction: 0.5 }));
+    const summary = summarizeVacationYear(entries, 2026, 'W', new Date(2026, 11, 31));
+    expect(summary.taken).toBe(3);
+  });
+
+  it('rechnet halbe Tage auch in Stunden um', () => {
+    const hours = vacationHoursInRange(
+      [HALBER_TAG],
+      new Date(2026, 6, 1),
+      new Date(2026, 6, 31),
+      'W',
+      8
+    );
+    expect(hours).toBe(4);
+  });
+
+  it('schreibt Tage mit Komma und ohne unnötige Null', () => {
+    expect(formatDays(12)).toBe('12');
+    expect(formatDays(12.5)).toBe('12,5');
+    expect(formatDays(0.5)).toBe('0,5');
+  });
+});
+
+describe('Krankenstand', () => {
+  const KRANK = { start: '2026-07-21', end: '2026-07-22', kind: 'sick' as const };
+  const URLAUB = { start: '2026-07-27', end: '2026-07-28' };
+  const ENDE_2026 = new Date(2026, 11, 31);
+
+  it('zählt Krankenstand nicht gegen das Kontingent', () => {
+    const summary = summarizeVacationYear([KRANK, URLAUB], 2026, 'W', ENDE_2026);
+    expect(summary.taken).toBe(2);      // nur der Urlaub
+    expect(summary.sickTaken).toBe(2);  // getrennt ausgewiesen
+    expect(summary.total).toBe(2);
+  });
+
+  it('liest einen fehlenden Typ als Urlaub', () => {
+    expect(entryKind({})).toBe('vacation');
+    expect(entryKind({ kind: 'sick' })).toBe('sick');
+  });
+
+  it('zählt Krankenstand für die Sollstunden wie Urlaub', () => {
+    // Beides sind Tage, an denen nichts zu leisten war -- sonst erschiene
+    // jede Krankenwoche als Minusstunden.
+    const hours = vacationHoursInRange(
+      [KRANK],
+      new Date(2026, 6, 1),
+      new Date(2026, 6, 31),
+      'W',
+      8
+    );
+    expect(hours).toBe(16);
+  });
+
+  it('kennt auch halbe Krankenstandstage', () => {
+    const summary = summarizeVacationYear(
+      [{ start: '2026-07-21', end: '2026-07-21', kind: 'sick', fraction: 0.5 }],
+      2026, 'W', ENDE_2026
+    );
+    expect(summary.sickTaken).toBe(0.5);
+    expect(summary.taken).toBe(0);
   });
 });

@@ -41,6 +41,19 @@ export function initDb(): Promise<void> {
       `).catch((err: { code?: string }) => {
         if (err.code !== 'ER_DUP_KEYNAME') throw err;
       });
+
+      // Nachträglich hinzugekommen. Die Vorgabewerte sind so gewählt, dass
+      // jede bestehende Zeile ohne weiteres Zutun ein ganzer Urlaubstag
+      // bleibt -- ein halber Tag wäre eine stille Änderung an bereits
+      // erfassten Daten.
+      for (const column of [
+        `ADD COLUMN fraction DECIMAL(2,1) NOT NULL DEFAULT 1.0`,
+        `ADD COLUMN kind VARCHAR(16) NOT NULL DEFAULT 'vacation'`,
+      ]) {
+        await pool.query(`ALTER TABLE vacations ${column}`).catch((err: { code?: string }) => {
+          if (err.code !== 'ER_DUP_FIELDNAME') throw err;
+        });
+      }
     })();
   }
   return initPromise;
