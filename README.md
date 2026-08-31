@@ -6,7 +6,7 @@ Urlaubsverwaltung. Für Tag, Woche, Monat und Jahr.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-2-ff3e00.svg)](https://kit.svelte.dev/)
-[![Tests](https://img.shields.io/badge/tests-14%20passing-brightgreen.svg)](#entwicklung)
+[![Tests](https://img.shields.io/badge/tests-32%20passing-brightgreen.svg)](#entwicklung)
 
 > *A mobile-first web app that compares hours tracked in Clockify against your
 > contracted working time, accounting for Austrian public holidays and booked
