@@ -1,0 +1,38 @@
+name: Fehlerbericht
+description: Etwas verhält sich anders als es soll
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "**Niemals einen Clockify-API-Schlüssel, eine Arbeitsbereichs-ID oder echte Buchungen einfügen.**"
+  - type: textarea
+    id: what
+    attributes:
+      label: Was passiert
+      description: Was du gesehen hast, und was du stattdessen erwartet hättest.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Wo
+      options: ["Tages-/Wochenansicht", "Monatsansicht", "Jahresansicht", "Urlaubsverwaltung", "Feiertage", "Clockify-Abgleich", "Woanders"]
+    validations:
+      required: true
+  - type: textarea
+    id: numbers
+    attributes:
+      label: Zeitraum und Zahlen
+      description: "Zeitraum, Arbeitszeitmodell, erwartete und tatsächliche Zahl. Das genügt fast immer."
+      placeholder: |
+        Zeitraum: August 2026
+        Modell: 38,5 h/Woche, Vollzeit
+        Erwartet: Soll 161:42
+        Tatsächlich: Soll 169:24
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Node-Version
+      description: "`node --version`"
