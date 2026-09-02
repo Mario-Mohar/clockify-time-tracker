@@ -1,5 +1,7 @@
 # Clockify Time Tracker
 
+[![codecov](https://codecov.io/gh/Mario-Mohar/clockify-time-tracker/graph/badge.svg)](https://codecov.io/gh/Mario-Mohar/clockify-time-tracker)
+
 Eine schlanke Weboberfläche, die deine in **Clockify** erfassten Stunden gegen
 dein Arbeitszeitmodell rechnet — inklusive österreichischer Feiertage und
 Urlaubsverwaltung. Für Tag, Woche, Monat und Jahr.
