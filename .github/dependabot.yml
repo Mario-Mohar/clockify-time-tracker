@@ -1,8 +1,11 @@
 # Dependabot keeps an eye on the dependencies and opens a pull request when one
-# of them moves. Two deliberate choices to keep that from turning into noise:
-# monthly rather than weekly, and everything grouped into a single pull request
-# per ecosystem instead of one per package. The limit is there so a month with
-# many releases cannot bury the repository.
+# of them moves. Monthly rather than weekly, and minor and patch updates grouped
+# into a single pull request so they can be read and merged in one go.
+#
+# Major updates are kept out of that group. On 2026-10-01 the single group
+# bundled TypeScript 5 -> 7, vite 6 -> 8 and vite-plugin-svelte 5 -> 7 with four
+# harmless bumps, and `npm ci` failed on the first of them, holding everything
+# else back. A major needs its own look, so it gets its own pull request.
 
 version: 2
 updates:
@@ -10,10 +13,24 @@ updates:
     directory: /
     schedule:
       interval: monthly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     groups:
       deps:
         patterns: ["*"]
+        # Without this line majors land in the group as well, see above.
+        update-types: ["minor", "patch"]
+      # vite-plugin-svelte 7 requires vite 8 as a peer, and the old plugin
+      # does not run on vite 8. Separately each pull request fails, together
+      # they can work.
+      vite:
+        patterns: ["vite", "@sveltejs/vite-plugin-svelte"]
+        update-types: ["major"]
+    ignore:
+      # svelte-check accepts TypeScript up to 6 (peer "^5.0.0 || ^6.0.0").
+      # REMOVE once it allows 7. Check with:
+      #   npm view svelte-check peerDependencies.typescript
+      - dependency-name: "typescript"
+        versions: [">= 7"]
 
   - package-ecosystem: github-actions
     directory: /
