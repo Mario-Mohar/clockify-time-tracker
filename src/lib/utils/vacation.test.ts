@@ -252,3 +252,30 @@ describe('Krankenstand', () => {
     expect(summary.taken).toBe(0);
   });
 });
+
+describe('heute mit Uhrzeit (#31)', () => {
+  // Di, 13.10.2026, 14:30 -- das Dashboard lädt selten um Mitternacht.
+  const NOW = new Date(2026, 9, 13, 14, 30);
+
+  it('zählt einen Urlaubstag heute in der Tagesansicht', () => {
+    const entries = [{ start: '2026-10-13', end: '2026-10-13' }];
+    expect(vacationHoursInRange(entries, NOW, NOW, 'W', 8)).toBe(8);
+  });
+
+  it('zählt einen Urlaubstag heute als genommen', () => {
+    const summary = summarizeVacationYear([{ start: '2026-10-13', end: '2026-10-13' }], 2026, 'W', NOW);
+    expect(summary.taken).toBe(1);
+    expect(summary.planned).toBe(0);
+  });
+
+  it('zählt einen einzelnen Tag morgen als geplant', () => {
+    const summary = summarizeVacationYear([{ start: '2026-10-14', end: '2026-10-14' }], 2026, 'W', NOW);
+    expect(summary.taken).toBe(0);
+    expect(summary.planned).toBe(1);
+  });
+
+  it('zählt Mi bis Fr ab morgen als drei geplante Tage', () => {
+    const summary = summarizeVacationYear([{ start: '2026-10-14', end: '2026-10-16' }], 2026, 'W', NOW);
+    expect(summary.planned).toBe(3);
+  });
+});

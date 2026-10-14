@@ -5,6 +5,7 @@ import {
   calculateRequiredToday,
   countWorkingDays,
   getHoursPerDay,
+  formatHours,
   type WorkConfig,
 } from './calculations';
 
@@ -92,5 +93,24 @@ describe('calculateRequiredToday', () => {
   it('ein Feiertag verlangt nichts -- vorher wurde nur aufs Wochenende geprüft', () => {
     expect(calculateRequiredToday(vollzeit, nationalfeiertag)).toBe(0);
     expect(calculateRequiredToday(teilzeit, nationalfeiertag)).toBe(0);
+  });
+});
+
+describe('formatHours', () => {
+  it('zeigt ganze Stunden und Minuten', () => {
+    expect(formatHours(8)).toBe('8h');
+    expect(formatHours(8.5)).toBe('8:30h');
+    expect(formatHours(-1.25)).toBe('-1:15h');
+  });
+
+  it('trägt auf 60 gerundete Minuten in die Stunde über (#32)', () => {
+    expect(formatHours(7.9999)).toBe('8h');
+    expect(formatHours(-0.999)).toBe('-1h');
+    // PT7H59M45S
+    expect(formatHours((7 * 3600 + 59 * 60 + 45) / 3600)).toBe('8h');
+  });
+
+  it('zeigt kein "-0h" für Werte knapp unter null', () => {
+    expect(formatHours(-0.001)).toBe('0h');
   });
 });

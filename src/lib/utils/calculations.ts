@@ -251,9 +251,12 @@ export function compareYearHours(
  * Format hours to readable string (e.g., "8:30h")
  */
 export function formatHours(hours: number): string {
-  const h = Math.floor(Math.abs(hours));
-  const m = Math.round((Math.abs(hours) - h) * 60);
-  const sign = hours < 0 ? '-' : '';
+  // Erst auf ganze Minuten runden, dann teilen: so wird aus 7:59,99 "8h"
+  // und nicht "7:60h".
+  const total = Math.round(Math.abs(hours) * 60);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  const sign = hours < 0 && total > 0 ? '-' : '';
 
   if (m === 0) return `${sign}${h}h`;
   return `${sign}${h}:${m.toString().padStart(2, '0')}h`;

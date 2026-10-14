@@ -6,6 +6,16 @@
 
 const CLOCKIFY_API_BASE = 'https://api.clockify.me/api/v1';
 
+/** Einträge pro Seite beim Laden der Zeiteinträge. */
+export const TIME_ENTRIES_PAGE_SIZE = 1000;
+
+/**
+ * Obergrenze für die Seiten, damit eine API, die immer volle Seiten liefert,
+ * keine Endlosschleife auslöst. 50 Seiten zu je 1000 sind weit mehr als ein
+ * Jahr Zeiterfassung.
+ */
+export const TIME_ENTRIES_MAX_PAGES = 50;
+
 export interface ClockifyTimeEntry {
   id: string;
   description: string;
@@ -24,6 +34,7 @@ export interface ClockifyUser {
   email: string;
   name: string;
   activeWorkspace: string;
+  defaultWorkspace?: string;
 }
 
 export interface ClockifyWorkspace {
@@ -35,6 +46,22 @@ export interface TimeEntrySummary {
   totalSeconds: number;
   totalHours: number;
   entries: ClockifyTimeEntry[];
+}
+
+/**
+ * Der Workspace, in dem der Nutzer gerade arbeitet: activeWorkspace, sonst
+ * defaultWorkspace, erst zuletzt der erste aus der Liste. Mit mehreren
+ * Workspaces ist der erste sonst oft der falsche.
+ */
+export function pickWorkspace(
+  user: Pick<ClockifyUser, 'activeWorkspace' | 'defaultWorkspace'>,
+  workspaces: ClockifyWorkspace[]
+): ClockifyWorkspace | undefined {
+  return (
+    workspaces.find((w) => w.id === user.activeWorkspace) ??
+    workspaces.find((w) => w.id === user.defaultWorkspace) ??
+    workspaces[0]
+  );
 }
 
 /**
@@ -100,13 +127,27 @@ export class ClockifyClient {
     end: string
   ): Promise<ClockifyTimeEntry[]> {
     const endpoint = `/workspaces/${workspaceId}/user/${userId}/time-entries`;
-    const params = new URLSearchParams({
-      start,
-      end,
-      'page-size': '1000', // Get up to 1000 entries
-    });
+    const entries: ClockifyTimeEntry[] = [];
 
-    return this.fetch<ClockifyTimeEntry[]>(`${endpoint}?${params}`);
+    // Seitenweise laden, bis eine Seite nicht mehr voll ist. Sonst fehlen ab
+    // 1000 Einträgen still Stunden.
+    for (let page = 1; page <= TIME_ENTRIES_MAX_PAGES; page++) {
+      const params = new URLSearchParams({
+        start,
+        end,
+        page: String(page),
+        'page-size': String(TIME_ENTRIES_PAGE_SIZE),
+      });
+
+      const batch = await this.fetch<ClockifyTimeEntry[]>(`${endpoint}?${params}`);
+      entries.push(...batch);
+      if (batch.length < TIME_ENTRIES_PAGE_SIZE) return entries;
+    }
+
+    // Lieber einen Fehler zeigen als ein zu niedriges Ist.
+    throw new Error(
+      `Mehr als ${TIME_ENTRIES_MAX_PAGES * TIME_ENTRIES_PAGE_SIZE} Zeiteinträge im Zeitraum, Abbruch`
+    );
   }
 
   /**

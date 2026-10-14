@@ -1,3 +1,4 @@
+import { startOfDay } from 'date-fns';
 import { countWorkingDaysWithHolidays, DEFAULT_WORK_DAYS } from './holidays';
 import type { AustrianState } from './holidays';
 
@@ -96,6 +97,10 @@ export function summarizeVacationYear(
   const yearStart = new Date(year, 0, 1);
   const yearEnd = new Date(year, 11, 31);
 
+  // Nur das Datum zählt. Mit Uhrzeit läge ein Eintrag für heute (Mitternacht)
+  // vor today und der morgige Tag hinter einem plannedStart von morgen 14:30.
+  const day = startOfDay(today);
+
   let taken = 0;
   let planned = 0;
   let sickTaken = 0;
@@ -112,11 +117,11 @@ export function summarizeVacationYear(
     const isSick = entryKind(entry) === 'sick';
 
     // Split the clipped range at today.
-    const takenEnd = rangeEnd <= today ? rangeEnd : today;
-    const plannedStart = new Date(today);
+    const takenEnd = rangeEnd <= day ? rangeEnd : day;
+    const plannedStart = new Date(day);
     plannedStart.setDate(plannedStart.getDate() + 1);
 
-    if (rangeStart <= takenEnd && rangeStart <= today) {
+    if (rangeStart <= takenEnd && rangeStart <= day) {
       const days = countWorkingDaysWithHolidays(rangeStart, takenEnd, state, workDays) * fraction;
       if (isSick) sickTaken += days;
       else taken += days;
@@ -153,12 +158,16 @@ export function vacationHoursInRange(
   hoursPerDay: number,
   workDays: number[] = DEFAULT_WORK_DAYS
 ): number {
+  // Auf Mitternacht ziehen, wie parseDate: sonst fällt ein Eintrag für heute
+  // weg, wenn der Zeitraum mit der aktuellen Uhrzeit beginnt.
+  const from = startOfDay(rangeStart);
+  const to = startOfDay(rangeEnd);
   let total = 0;
   for (const entry of entries) {
     const start = parseDate(entry.start);
     const end = parseDate(entry.end);
-    const clipStart = start > rangeStart ? start : rangeStart;
-    const clipEnd = end < rangeEnd ? end : rangeEnd;
+    const clipStart = start > from ? start : from;
+    const clipEnd = end < to ? end : to;
     if (clipStart > clipEnd) continue;
     total +=
       countWorkingDaysWithHolidays(clipStart, clipEnd, state, workDays) * entryFraction(entry);
