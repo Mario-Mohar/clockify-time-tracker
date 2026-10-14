@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   ClockifyClient,
+  pickWorkspace,
   TIME_ENTRIES_MAX_PAGES,
   TIME_ENTRIES_PAGE_SIZE,
   type ClockifyTimeEntry,
@@ -90,5 +91,29 @@ describe('getTimeEntries (#33)', () => {
     );
     const summary = await client.getYearEntries('w1', 'u1', 2026);
     expect(summary.totalHours).toBe(TIME_ENTRIES_PAGE_SIZE + 10);
+  });
+});
+
+describe('pickWorkspace (#34)', () => {
+  const workspaces = [
+    { id: 'w1', name: 'Erster' },
+    { id: 'w2', name: 'Aktiver' },
+    { id: 'w3', name: 'Standard' },
+  ];
+
+  it('nimmt den aktiven Workspace, nicht den ersten', () => {
+    expect(pickWorkspace({ activeWorkspace: 'w2', defaultWorkspace: 'w3' }, workspaces)?.id).toBe('w2');
+  });
+
+  it('fällt auf den Standard-Workspace zurück', () => {
+    expect(pickWorkspace({ activeWorkspace: 'weg', defaultWorkspace: 'w3' }, workspaces)?.id).toBe('w3');
+  });
+
+  it('nimmt den ersten nur, wenn sonst nichts passt', () => {
+    expect(pickWorkspace({ activeWorkspace: 'weg' }, workspaces)?.id).toBe('w1');
+  });
+
+  it('liefert undefined ohne Workspaces', () => {
+    expect(pickWorkspace({ activeWorkspace: 'w1' }, [])).toBeUndefined();
   });
 });

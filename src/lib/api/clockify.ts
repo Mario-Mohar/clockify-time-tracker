@@ -34,6 +34,7 @@ export interface ClockifyUser {
   email: string;
   name: string;
   activeWorkspace: string;
+  defaultWorkspace?: string;
 }
 
 export interface ClockifyWorkspace {
@@ -45,6 +46,22 @@ export interface TimeEntrySummary {
   totalSeconds: number;
   totalHours: number;
   entries: ClockifyTimeEntry[];
+}
+
+/**
+ * Der Workspace, in dem der Nutzer gerade arbeitet: activeWorkspace, sonst
+ * defaultWorkspace, erst zuletzt der erste aus der Liste. Mit mehreren
+ * Workspaces ist der erste sonst oft der falsche.
+ */
+export function pickWorkspace(
+  user: Pick<ClockifyUser, 'activeWorkspace' | 'defaultWorkspace'>,
+  workspaces: ClockifyWorkspace[]
+): ClockifyWorkspace | undefined {
+  return (
+    workspaces.find((w) => w.id === user.activeWorkspace) ??
+    workspaces.find((w) => w.id === user.defaultWorkspace) ??
+    workspaces[0]
+  );
 }
 
 /**

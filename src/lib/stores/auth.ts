@@ -93,13 +93,14 @@ function createAuthStore() {
 
       try {
         // Dynamically import to avoid SSR issues
-        const { createClockifyClient } = await import('$lib/api/clockify');
+        const { createClockifyClient, pickWorkspace } = await import('$lib/api/clockify');
         const client = createClockifyClient(apiKey);
 
         // Validate API key by fetching user
         const user = await client.getCurrentUser();
         const workspaces = await client.getWorkspaces();
-        const workspace = workspaces[0]; // Use first workspace
+        const workspace = pickWorkspace(user, workspaces);
+        if (!workspace) throw new Error('Kein Clockify-Workspace gefunden');
 
         const newState: AuthState = {
           apiKey,
