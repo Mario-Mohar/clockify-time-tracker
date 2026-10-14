@@ -24,7 +24,7 @@
   import { vacations } from '$lib/stores/vacations';
   import VacationTile from './VacationTile.svelte';
   import { summarizeVacationYear, vacationHoursInRange, type VacationSummary } from '$lib/utils/vacation';
-  import { startOfMonth, endOfMonth, startOfYear, endOfYear, endOfWeek } from 'date-fns';
+  import { startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, endOfWeek } from 'date-fns';
 
   type Period = 'day' | 'week' | 'month' | 'year';
 
@@ -90,7 +90,7 @@
     const weekStart = getWeekStart($workConfig);
     const weekEnd = endOfWeek(now, { weekStartsOn: $workConfig.startOfWeek === 'monday' ? 1 : 0 });
 
-    const vacToday = vacationHoursInRange(entries, now, now, $workConfig.state, hoursPerDay, workDays);
+    const vacToday = vacationHoursInRange(entries, startOfDay(now), endOfDay(now), $workConfig.state, hoursPerDay, workDays);
     const vacWeek = vacationHoursInRange(entries, weekStart, weekEnd, $workConfig.state, hoursPerDay, workDays);
     const vacMonth = vacationHoursInRange(entries, startOfMonth(now), endOfMonth(now), $workConfig.state, hoursPerDay, workDays);
     const vacYear = vacationHoursInRange(entries, startOfYear(now), endOfYear(now), $workConfig.state, hoursPerDay, workDays);
