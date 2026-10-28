@@ -19,9 +19,14 @@ node build/index.js # startet den Server, Standard-Port 3000
 | `DATABASE_URL` | `mysql://user:passwort@host:3306/datenbank` |
 | `ORIGIN` | Die öffentliche URL, z. B. `https://zeit.example.com` |
 
-`ORIGIN` ist nicht optional, sobald POST-Requests im Spiel sind: SvelteKit
-prüft bei Formular- und API-Posts die Herkunft und lehnt sie ohne passende
-`ORIGIN` mit `403 Cross-site POST form submissions are forbidden` ab.
+`ORIGIN` wird seit SvelteKit 3 beim **Bauen** gelesen, nicht mehr beim Start:
+`ORIGIN=https://zeit.example.com npm run build`. Fehlt sie beim Build, nimmt
+die App die Herkunft aus dem `Host`-Header und geht von `https` aus. Hinter
+einem Proxy, der TLS terminiert und den Host weiterreicht, passt das; sonst
+lehnt SvelteKit Formular- und API-Posts mit `403` ab.
+
+`DATABASE_URL` liest die App weiterhin beim Start. Sie ist in `src/env.ts`
+deklariert und darf beim Bauen fehlen.
 
 Der Clockify-API-Key gehört **nicht** hierher. Den gibt jede Person selbst in
 der App ein; er bleibt im Browser (`localStorage`) und wandert bei jedem
@@ -45,8 +50,9 @@ docker compose up -d
 
 Vor den Node-Prozess gehört ein Reverse Proxy, der TLS terminiert und auf den
 App-Port weiterleitet — nginx, Caddy, Traefik oder was der Hoster anbietet.
-Wichtig ist nur, dass `ORIGIN` exakt der öffentlichen URL entspricht, inklusive
-Schema und ohne abschließenden Slash.
+Wichtig ist nur, dass `ORIGIN` beim Build exakt der öffentlichen URL entspricht,
+inklusive Schema und ohne abschließenden Slash, oder dass der Proxy den
+öffentlichen Host durchreicht.
 
 ## Hosting mit Phusion Passenger (z. B. Plesk)
 
@@ -56,7 +62,8 @@ der `build/index.js` dynamisch importiert:
 
 - Startdatei: `app.cjs`
 - Application Root: das Projektverzeichnis
-- Environment-Variablen: `DATABASE_URL` und `ORIGIN` wie oben
+- Environment-Variablen: `DATABASE_URL` und `ORIGIN` wie oben (`ORIGIN` muss auch
+  beim `npm run build` gesetzt sein)
 
 Nach jedem Deploy einmal `npm ci`, `npm run build` und einen Neustart der App.
 
@@ -67,4 +74,5 @@ Datenbankverbindung schuld. Der Pool wird bewusst erst beim ersten Zugriff
 aufgebaut (`lazy init`), damit der Build ohne `DATABASE_URL` durchläuft —
 Verbindungsfehler tauchen deshalb erst zur Laufzeit auf, nicht beim Bauen.
 
-Bei `403` auf POST-Requests stimmt `ORIGIN` nicht.
+Bei `403` auf POST-Requests stimmt `ORIGIN` nicht, oder sie war beim Build
+nicht gesetzt.

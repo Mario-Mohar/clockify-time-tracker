@@ -1,13 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { isAuthenticated } from '$lib/stores/auth';
-  import { vacations } from '$lib/stores/vacations';
-  import { createVacationsApi, type VacationRow, type VacationApiError } from '$lib/api/vacations';
-  import { auth } from '$lib/stores/auth';
-  import VacationList from '$lib/components/VacationList.svelte';
-  import VacationModal from '$lib/components/VacationModal.svelte';
-  import type { VacationKind } from '$lib/utils/vacation';
+  import { isAuthenticated } from '#lib/stores/auth.ts';
+  import { vacations } from '#lib/stores/vacations.ts';
+  import { createVacationsApi, type VacationRow, type VacationApiError } from '#lib/api/vacations.ts';
+  import { auth } from '#lib/stores/auth.ts';
+  import VacationList from '#lib/components/VacationList.svelte';
+  import VacationModal from '#lib/components/VacationModal.svelte';
+  import type { VacationKind } from '#lib/utils/vacation.ts';
 
   let allEntries: VacationRow[] = [];
   let isLoading = true;

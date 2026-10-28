@@ -1,15 +1,15 @@
 import mysql, { type Pool } from 'mysql2/promise';
-import { env } from '$env/dynamic/private';
+import { DATABASE_URL } from '$app/env/private';
 
 let _pool: Pool | undefined;
 
 export function getPool(): Pool {
   if (_pool) return _pool;
-  if (!env.DATABASE_URL) {
+  if (!DATABASE_URL) {
     throw new Error('DATABASE_URL is not set');
   }
   _pool = mysql.createPool({
-    uri: env.DATABASE_URL,
+    uri: DATABASE_URL,
     connectionLimit: 10,
     dateStrings: true,
     timezone: 'Z',

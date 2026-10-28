@@ -5,10 +5,10 @@
    */
 
   import { onMount } from 'svelte';
-  import { auth, currentUser, currentWorkspace } from '$lib/stores/auth';
-  import { workConfig } from '$lib/stores/config';
-  import { createClockifyClient } from '$lib/api/clockify';
-  import type { TimeEntrySummary } from '$lib/api/clockify';
+  import { auth, currentUser, currentWorkspace } from '#lib/stores/auth.ts';
+  import { workConfig } from '#lib/stores/config.ts';
+  import { createClockifyClient } from '#lib/api/clockify.ts';
+  import type { TimeEntrySummary } from '#lib/api/clockify.ts';
   import {
     compareTodayHours,
     compareWeekHours,
@@ -18,12 +18,12 @@
     formatDifference,
     getWeekStart,
     getHoursPerDay,
-  } from '$lib/utils/calculations';
-  import type { TimeComparison } from '$lib/utils/calculations';
+  } from '#lib/utils/calculations.ts';
+  import type { TimeComparison } from '#lib/utils/calculations.ts';
   import { goto } from '$app/navigation';
-  import { vacations } from '$lib/stores/vacations';
+  import { vacations } from '#lib/stores/vacations.ts';
   import VacationTile from './VacationTile.svelte';
-  import { summarizeVacationYear, vacationHoursInRange, type VacationSummary } from '$lib/utils/vacation';
+  import { summarizeVacationYear, vacationHoursInRange, type VacationSummary } from '#lib/utils/vacation.ts';
   import { startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, endOfWeek } from 'date-fns';
 
   type Period = 'day' | 'week' | 'month' | 'year';

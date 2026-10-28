@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { formatDays, type VacationSummary } from '$lib/utils/vacation';
+  import { formatDays, type VacationSummary } from '#lib/utils/vacation.ts';
 
   export let year: number;
   export let summary: VacationSummary | null;

@@ -4,7 +4,7 @@
    * Handles Clockify API Key authentication
    */
 
-  import { auth } from '$lib/stores/auth';
+  import { auth } from '#lib/stores/auth.ts';
 
   let apiKey = '';
   let isSubmitting = false;

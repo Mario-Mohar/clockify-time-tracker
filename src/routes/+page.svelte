@@ -4,9 +4,9 @@
    * Shows Login or Dashboard based on authentication state
    */
 
-  import { isAuthenticated } from '$lib/stores/auth';
-  import Login from '$lib/components/Login.svelte';
-  import Dashboard from '$lib/components/Dashboard.svelte';
+  import { isAuthenticated } from '#lib/stores/auth.ts';
+  import Login from '#lib/components/Login.svelte';
+  import Dashboard from '#lib/components/Dashboard.svelte';
 </script>
 
 <svelte:head>

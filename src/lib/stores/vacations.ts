@@ -1,6 +1,6 @@
 import { writable, get } from 'svelte/store';
-import { createVacationsApi, type VacationRow, type VacationApiError } from '$lib/api/vacations';
-import type { VacationKind } from '$lib/utils/vacation';
+import { createVacationsApi, type VacationRow, type VacationApiError } from '#lib/api/vacations.ts';
+import type { VacationKind } from '#lib/utils/vacation.ts';
 import { auth } from './auth';
 
 interface VacationsState {

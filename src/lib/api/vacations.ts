@@ -1,4 +1,4 @@
-import type { VacationKind } from '$lib/utils/vacation';
+import type { VacationKind } from '#lib/utils/vacation.ts';
 
 export interface VacationRow {
   id: number;
