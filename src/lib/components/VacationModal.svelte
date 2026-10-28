@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { workConfig } from '$lib/stores/config';
-  import { countWorkingDaysWithHolidays, getHolidayCount } from '$lib/utils/holidays';
-  import { formatDays, type VacationKind } from '$lib/utils/vacation';
+  import { workConfig } from '#lib/stores/config.ts';
+  import { countWorkingDaysWithHolidays, getHolidayCount } from '#lib/utils/holidays.ts';
+  import { formatDays, type VacationKind } from '#lib/utils/vacation.ts';
 
   export let onSave: (
     start: string,

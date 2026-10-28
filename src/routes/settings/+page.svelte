@@ -6,8 +6,8 @@
 
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { isAuthenticated } from '$lib/stores/auth';
-  import Settings from '$lib/components/Settings.svelte';
+  import { isAuthenticated } from '#lib/stores/auth.ts';
+  import Settings from '#lib/components/Settings.svelte';
 
   // Redirect to home if not authenticated
   onMount(() => {

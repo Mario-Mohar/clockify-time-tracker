@@ -4,10 +4,10 @@
    * Configure work contract settings (weekly hours, work days, federal state)
    */
 
-  import { workConfig } from '$lib/stores/config';
-  import { auth } from '$lib/stores/auth';
-  import { getHoursPerDay } from '$lib/utils/calculations';
-  import { STATE_NAMES, type AustrianState } from '$lib/utils/holidays';
+  import { workConfig } from '#lib/stores/config.ts';
+  import { auth } from '#lib/stores/auth.ts';
+  import { getHoursPerDay } from '#lib/utils/calculations.ts';
+  import { STATE_NAMES, type AustrianState } from '#lib/utils/holidays.ts';
 
   let weeklyHours = $workConfig.weeklyHours;
   let workDays = [...$workConfig.workDays];

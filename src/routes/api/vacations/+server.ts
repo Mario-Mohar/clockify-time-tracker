@@ -1,6 +1,6 @@
-import { json, error, type RequestHandler } from '@sveltejs/kit';
-import { requireClockifyUserId } from '$lib/server/auth';
-import { listByYear, listAll, create, findOverlap } from '$lib/server/vacations';
+import { error, type RequestHandler } from '@sveltejs/kit';
+import { requireClockifyUserId } from '#lib/server/auth.ts';
+import { listByYear, listAll, create, findOverlap } from '#lib/server/vacations.ts';
 
 export const GET: RequestHandler = async (event) => {
   const userId = await requireClockifyUserId(event);
@@ -12,11 +12,11 @@ export const GET: RequestHandler = async (event) => {
       throw error(400, 'Invalid year parameter');
     }
     const rows = await listByYear(userId, year);
-    return json({ vacations: rows });
+    return Response.json({ vacations: rows });
   }
 
   const rows = await listAll(userId);
-  return json({ vacations: rows });
+  return Response.json({ vacations: rows });
 };
 
 export const POST: RequestHandler = async (event) => {
@@ -67,12 +67,12 @@ export const POST: RequestHandler = async (event) => {
   // sagt jetzt, womit es sich überschneidet.
   const conflict = await findOverlap(userId, start, end);
   if (conflict) {
-    return json(
+    return Response.json(
       { error: 'overlap', conflictsWith: conflict },
       { status: 409 }
     );
   }
 
   const row = await create(userId, start, end, noteStr, fractionValue, kindValue);
-  return json({ vacation: row }, { status: 201 });
+  return Response.json({ vacation: row }, { status: 201 });
 };

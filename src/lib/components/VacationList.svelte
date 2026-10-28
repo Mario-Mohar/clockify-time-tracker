@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { workConfig } from '$lib/stores/config';
+  import { workConfig } from '#lib/stores/config.ts';
   import {
     summarizeVacationYear,
     countVacationDaysInYear,
     entryKind,
     formatDays,
-  } from '$lib/utils/vacation';
-  import type { VacationRow } from '$lib/api/vacations';
+  } from '#lib/utils/vacation.ts';
+  import type { VacationRow } from '#lib/api/vacations.ts';
 
   export let entries: VacationRow[];
   export let onDelete: (id: number) => Promise<void>;

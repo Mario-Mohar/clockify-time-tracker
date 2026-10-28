@@ -4,8 +4,8 @@
  */
 
 import { writable, derived, get } from 'svelte/store';
-import { browser } from '$app/environment';
-import type { ClockifyUser, ClockifyWorkspace } from '$lib/api/clockify';
+import { browser } from '$app/env';
+import type { ClockifyUser, ClockifyWorkspace } from '#lib/api/clockify.ts';
 
 interface AuthState {
   apiKey: string | null;
@@ -93,7 +93,7 @@ function createAuthStore() {
 
       try {
         // Dynamically import to avoid SSR issues
-        const { createClockifyClient, pickWorkspace } = await import('$lib/api/clockify');
+        const { createClockifyClient, pickWorkspace } = await import('#lib/api/clockify.ts');
         const client = createClockifyClient(apiKey);
 
         // Validate API key by fetching user

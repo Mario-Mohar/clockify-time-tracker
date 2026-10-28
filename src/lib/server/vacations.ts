@@ -1,6 +1,6 @@
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { getPool, initDb } from './db';
-import type { VacationKind } from '$lib/utils/vacation';
+import type { VacationKind } from '#lib/utils/vacation.ts';
 
 export interface DbVacation extends RowDataPacket {
   id: number;

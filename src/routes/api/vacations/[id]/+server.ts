@@ -1,6 +1,6 @@
-import { json, error, type RequestHandler } from '@sveltejs/kit';
-import { requireClockifyUserId } from '$lib/server/auth';
-import { remove } from '$lib/server/vacations';
+import { error, type RequestHandler } from '@sveltejs/kit';
+import { requireClockifyUserId } from '#lib/server/auth.ts';
+import { remove } from '#lib/server/vacations.ts';
 
 export const DELETE: RequestHandler = async (event) => {
   const userId = await requireClockifyUserId(event);
@@ -13,5 +13,5 @@ export const DELETE: RequestHandler = async (event) => {
   if (!deleted) {
     throw error(404, 'Vacation not found');
   }
-  return json({ ok: true });
+  return Response.json({ ok: true });
 };

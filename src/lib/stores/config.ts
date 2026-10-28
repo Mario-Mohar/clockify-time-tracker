@@ -4,9 +4,9 @@
  */
 
 import { writable, get } from 'svelte/store';
-import { browser } from '$app/environment';
-import type { WorkConfig } from '$lib/utils/calculations';
-import { DEFAULT_CONFIG } from '$lib/utils/calculations';
+import { browser } from '$app/env';
+import type { WorkConfig } from '#lib/utils/calculations.ts';
+import { DEFAULT_CONFIG } from '#lib/utils/calculations.ts';
 
 const STORAGE_KEY = 'clockify_work_config';
 
