@@ -32,6 +32,11 @@ function loadConfig(): WorkConfig {
         config.vacationBudget = DEFAULT_CONFIG.vacationBudget;
         saveConfig(config);
       }
+      // Migration: Add autoBreak if missing (for old configs)
+      if (config.autoBreak === undefined) {
+        config.autoBreak = DEFAULT_CONFIG.autoBreak;
+        saveConfig(config);
+      }
       // Migration: aus der alten Anzahl workDaysPerWeek konkrete Wochentage
       // machen. Vier Tage werden zu Montag bis Donnerstag -- eine Annahme, die
       // in den Einstellungen mit zwei Klicks zu korrigieren ist, aber besser

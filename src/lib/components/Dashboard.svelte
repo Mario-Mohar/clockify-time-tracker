@@ -7,8 +7,9 @@
   import { onMount } from 'svelte';
   import { auth, currentUser, currentWorkspace } from '#lib/stores/auth.ts';
   import { workConfig } from '#lib/stores/config.ts';
-  import { createClockifyClient } from '#lib/api/clockify.ts';
-  import type { TimeEntrySummary } from '#lib/api/clockify.ts';
+  import { calculateBreakHours } from '#lib/utils/breaks.ts';
+  import { createClockifyClient, entriesInRange } from '#lib/api/clockify.ts';
+  import { loadEntries } from '#lib/api/entriesCache.ts';
   import {
     compareTodayHours,
     compareWeekHours,
@@ -30,7 +31,9 @@
 
   let selectedPeriod: Period = 'day';
   let isLoading = false;
+  let isFetching = false;
   let error: string | null = null;
+  let refreshError: string | null = null;
 
   let todayData: TimeComparison | null = null;
   let weekData: TimeComparison | null = null;
@@ -49,12 +52,15 @@
   }[selectedPeriod];
 
   /**
-   * Fetch time data from Clockify and vacation store
+   * Fetch time data from Clockify and vacation store.
+   * force: der Knopf, der die gemerkten Einträge bewusst neu lädt.
    */
-  async function fetchTimeData() {
-    if (!$auth.apiKey || !$currentUser || !$currentWorkspace) return;
+  async function fetchTimeData({ force = false }: { force?: boolean } = {}) {
+    if (!$auth.apiKey || !$currentUser || !$currentWorkspace || isFetching) return;
 
-    isLoading = true;
+    isFetching = true;
+    // Der Spinner nur, solange es noch nichts zu zeigen gibt.
+    isLoading = !todayData;
     error = null;
     vacationError = null;
 
@@ -62,16 +68,21 @@
     const workspaceId = $currentWorkspace.id;
     const currentYear = new Date().getFullYear();
 
-    // Load Clockify — errors here must not kill the vacation load
-    const clockifyPromise = (async () => {
-      const client = createClockifyClient($auth.apiKey!);
-      return Promise.all([
-        client.getTodayEntries(workspaceId, userId),
-        client.getWeekEntries(workspaceId, userId, getWeekStart($workConfig)),
-        client.getMonthEntries(workspaceId, userId, new Date().getFullYear(), new Date().getMonth()),
-        client.getYearEntries(workspaceId, userId, new Date().getFullYear()),
-      ]);
-    })();
+    // Eine Abfrage für alles: Tag, Woche und Monat liegen im Jahr, nur eine Woche
+    // am Jahresanfang reicht ins alte Jahr zurück. Jede Anfrage zählt gegen das
+    // Clockify-Limit von 30 pro Stunde.
+    const client = createClockifyClient($auth.apiKey!);
+    const today = new Date();
+    const weekFrom = getWeekStart($workConfig, today);
+    const rangeStart = weekFrom < startOfYear(today) ? weekFrom : startOfYear(today);
+    const clockifyPromise = loadEntries(
+      client,
+      workspaceId,
+      userId,
+      rangeStart.toISOString(),
+      endOfYear(today).toISOString(),
+      { force }
+    );
 
     // Load vacations — errors here must not kill Clockify display
     const vacationPromise = vacations
@@ -96,12 +107,22 @@
     const vacYear = vacationHoursInRange(entries, startOfYear(now), endOfYear(now), $workConfig.state, hoursPerDay, workDays);
 
     if (clockifyResult.status === 'fulfilled') {
-      const [today, week, month, year] = clockifyResult.value;
-      todayData = compareTodayHours(today.totalHours, vacToday, $workConfig);
-      weekData = compareWeekHours(week.totalHours, vacWeek, $workConfig);
-      monthData = compareMonthHours(month.totalHours, vacMonth, $workConfig);
-      yearData = compareYearHours(year.totalHours, vacYear, $workConfig);
-      lastUpdated = new Date();
+      const { entries: loaded, fetchedAt, error: staleError } = clockifyResult.value;
+      const inRange = (from: Date, to: Date) => {
+        const part = entriesInRange(loaded, from, to);
+        const pause = $workConfig.autoBreak ? calculateBreakHours(part) : 0;
+        return { hours: client.calculateTotalHours(part).totalHours - pause, pause };
+      };
+      const day = inRange(startOfDay(now), endOfDay(now));
+      const week = inRange(weekStart, weekEnd);
+      const month = inRange(startOfMonth(now), endOfMonth(now));
+      const year = inRange(startOfYear(now), endOfYear(now));
+      todayData = { ...compareTodayHours(day.hours, vacToday, $workConfig), breakHours: day.pause };
+      weekData = { ...compareWeekHours(week.hours, vacWeek, $workConfig), breakHours: week.pause };
+      monthData = { ...compareMonthHours(month.hours, vacMonth, $workConfig), breakHours: month.pause };
+      yearData = { ...compareYearHours(year.hours, vacYear, $workConfig), breakHours: year.pause };
+      lastUpdated = fetchedAt;
+      refreshError = staleError;
     } else {
       error = clockifyResult.reason instanceof Error
         ? clockifyResult.reason.message
@@ -112,6 +133,7 @@
     vacationSummary = summarizeVacationYear(entries, currentYear, $workConfig.state, now, workDays);
 
     isLoading = false;
+    isFetching = false;
   }
 
   /**
@@ -134,9 +156,19 @@
 
   onMount(() => {
     fetchTimeData();
-    // Auto-refresh every 5 minutes
-    const interval = setInterval(fetchTimeData, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+    // Alle 15 Minuten, und nur wenn die Seite sichtbar ist: 5 Minuten waren mit
+    // dem Limit von 30 Anfragen pro Stunde nicht vereinbar.
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchTimeData();
+    }, 15 * 60 * 1000);
+    const onVisible = () => {
+      if (!document.hidden) fetchTimeData();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   });
 </script>
 
@@ -193,7 +225,7 @@
       budget={$workConfig.vacationBudget}
       isLoading={$vacations.isLoading}
       error={vacationError}
-      onRetry={fetchTimeData}
+      onRetry={() => fetchTimeData()}
       onClick={() => goto('/urlaub')}
     />
 
@@ -207,7 +239,7 @@
       <div class="error-card">
         <div class="error-icon">⚠️</div>
         <p>{error}</p>
-        <button class="btn-secondary" on:click={fetchTimeData}>
+        <button class="btn-secondary" on:click={() => fetchTimeData({ force: true })}>
           Erneut versuchen
         </button>
       </div>
@@ -234,6 +266,9 @@
               <div class="stat-sub">
                 {formatHours(currentData.clockifyHours)} Clockify + {formatHours(currentData.vacationHours)} Urlaub
               </div>
+            {/if}
+            {#if currentData.breakHours}
+              <div class="stat-sub">{formatHours(currentData.breakHours)} Pause abgezogen</div>
             {/if}
           </div>
         </div>
@@ -277,13 +312,17 @@
 
     <!-- Footer Actions -->
     <div class="actions">
-      <button class="btn-secondary" on:click={fetchTimeData} disabled={isLoading}>
+      <button class="btn-secondary" on:click={() => fetchTimeData({ force: true })} disabled={isFetching}>
         🔄 Aktualisieren
       </button>
       <a href="/settings" class="btn-secondary">
         ⚙️ Einstellungen
       </a>
     </div>
+
+    {#if refreshError}
+      <div class="refresh-error">⚠️ {refreshError} Angezeigt wird der letzte Stand.</div>
+    {/if}
 
     {#if lastUpdated}
       <div class="last-updated">
@@ -595,6 +634,13 @@
   .btn-secondary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .refresh-error {
+    text-align: center;
+    color: #fff;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
   }
 
   .last-updated {

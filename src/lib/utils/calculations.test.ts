@@ -15,6 +15,7 @@ const mk = (weeklyHours: number, workDays: number[]): WorkConfig => ({
   startOfWeek: 'monday',
   state: 'W',
   vacationBudget: 25,
+  autoBreak: true,
 });
 
 const vollzeit = mk(40, [1, 2, 3, 4, 5]); // Mo–Fr

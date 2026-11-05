@@ -13,6 +13,7 @@
   let workDays = [...$workConfig.workDays];
   let startOfWeek = $workConfig.startOfWeek;
   let state = $workConfig.state;
+  let autoBreak = $workConfig.autoBreak;
 
   let isSaved = false;
 
@@ -39,6 +40,7 @@
       workDays,
       startOfWeek,
       state,
+      autoBreak,
     });
 
     isSaved = true;
@@ -54,6 +56,7 @@
       workDays = [...$workConfig.workDays];
       startOfWeek = $workConfig.startOfWeek;
       state = $workConfig.state;
+      autoBreak = $workConfig.autoBreak;
     }
   }
 
@@ -144,6 +147,17 @@
           </select>
         </div>
 
+        <div class="form-group">
+          <label class="checkbox-label" for="auto-break">
+            <input id="auto-break" type="checkbox" bind:checked={autoBreak} />
+            Gesetzliche Pause automatisch abziehen
+          </label>
+          <span class="label-hint">
+            Ab mehr als 6 Stunden pro Tag zählen 30 Minuten nicht als Arbeitszeit (§ 11 AZG).
+            In Clockify gebuchte Lücken gelten als Pause.
+          </span>
+        </div>
+
         <div class="calculated-info">
           <div class="info-item">
             <span class="info-label">Stunden pro Tag:</span>
@@ -187,13 +201,23 @@
       <ul>
         <li>Alle Einstellungen werden lokal in Ihrem Browser gespeichert</li>
         <li>Wochenenden werden automatisch von der Berechnung ausgeschlossen</li>
-        <li>Feiertage werden aktuell noch nicht berücksichtigt</li>
+        <li>Die 13 bundesweiten Feiertage werden automatisch vom Soll abgezogen</li>
       </ul>
     </div>
   </div>
 </div>
 
 <style>
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .checkbox-label input {
+    width: auto;
+  }
+
   .weekday-fieldset {
     border: none;
     padding: 0;

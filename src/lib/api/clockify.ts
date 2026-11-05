@@ -64,6 +64,22 @@ export function pickWorkspace(
   );
 }
 
+/** Clockify begrenzt die Anfragen, im Free-Plan auf 30 pro Stunde. */
+export class ClockifyRateLimitError extends Error {
+  constructor() {
+    super('Clockify-Limit erreicht (im Free-Plan 30 Anfragen pro Stunde). Bitte später erneut versuchen.');
+    this.name = 'ClockifyRateLimitError';
+  }
+}
+
+/** Die Einträge, die im lokalen Zeitraum [from, to] beginnen. */
+export function entriesInRange(entries: ClockifyTimeEntry[], from: Date, to: Date): ClockifyTimeEntry[] {
+  return entries.filter((e) => {
+    const start = Date.parse(e.timeInterval.start);
+    return start >= from.getTime() && start <= to.getTime();
+  });
+}
+
 /**
  * Clockify API Client Class
  */
@@ -90,6 +106,8 @@ export class ClockifyClient {
         ...options.headers,
       },
     });
+
+    if (response.status === 429) throw new ClockifyRateLimitError();
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -198,69 +216,6 @@ export class ClockifyClient {
     } catch (error) {
       return false;
     }
-  }
-
-  /**
-   * Get time entries for today
-   */
-  async getTodayEntries(workspaceId: string, userId: string): Promise<TimeEntrySummary> {
-    const today = new Date();
-    const start = new Date(today.setHours(0, 0, 0, 0)).toISOString();
-    const end = new Date(today.setHours(23, 59, 59, 999)).toISOString();
-
-    const entries = await this.getTimeEntries(workspaceId, userId, start, end);
-    return this.calculateTotalHours(entries);
-  }
-
-  /**
-   * Get time entries for current week
-   */
-  async getWeekEntries(
-    workspaceId: string,
-    userId: string,
-    startOfWeek: Date
-  ): Promise<TimeEntrySummary> {
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(endOfWeek.getDate() + 7);
-
-    const entries = await this.getTimeEntries(
-      workspaceId,
-      userId,
-      startOfWeek.toISOString(),
-      endOfWeek.toISOString()
-    );
-    return this.calculateTotalHours(entries);
-  }
-
-  /**
-   * Get time entries for current month
-   */
-  async getMonthEntries(
-    workspaceId: string,
-    userId: string,
-    year: number,
-    month: number
-  ): Promise<TimeEntrySummary> {
-    const start = new Date(year, month, 1).toISOString();
-    const end = new Date(year, month + 1, 0, 23, 59, 59, 999).toISOString();
-
-    const entries = await this.getTimeEntries(workspaceId, userId, start, end);
-    return this.calculateTotalHours(entries);
-  }
-
-  /**
-   * Get time entries for current year
-   */
-  async getYearEntries(
-    workspaceId: string,
-    userId: string,
-    year: number
-  ): Promise<TimeEntrySummary> {
-    const start = new Date(year, 0, 1).toISOString();
-    const end = new Date(year, 11, 31, 23, 59, 59, 999).toISOString();
-
-    const entries = await this.getTimeEntries(workspaceId, userId, start, end);
-    return this.calculateTotalHours(entries);
   }
 }
 
