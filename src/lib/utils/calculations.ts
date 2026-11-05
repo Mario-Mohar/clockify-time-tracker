@@ -32,6 +32,7 @@ export interface WorkConfig {
   startOfWeek: 'monday' | 'sunday'; // First day of week
   state: AustrianState; // Austrian federal state (for potential future use)
   vacationBudget: number; // Tage/Jahr, default 25
+  autoBreak: boolean; // gesetzliche Pause vom Clockify-Ist abziehen (§ 11 AZG)
 }
 
 export interface TimeComparison {
@@ -39,6 +40,7 @@ export interface TimeComparison {
   actualHours: number;
   clockifyHours: number;   // NEW: aus Clockify
   vacationHours: number;   // NEW: aus Urlaub
+  breakHours?: number;     // bereits vom Clockify-Ist abgezogene Pause
   difference: number; // positive = overtime, negative = missing
   status: 'over' | 'good' | 'under'; // Color coding
   period: string; // e.g., "2025-W47", "2025-11", "2025"
@@ -55,6 +57,7 @@ export const DEFAULT_CONFIG: WorkConfig = {
   startOfWeek: 'monday',
   state: 'W', // Default to Wien (Austria)
   vacationBudget: 25,
+  autoBreak: true,
 };
 
 /**

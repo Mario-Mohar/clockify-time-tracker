@@ -44,6 +44,12 @@ eingetragenem Urlaub und Krankenstand. Beides zählt als voller Arbeitstag,
 sonst würde jede Urlaubs- oder Krankenwoche als Minusstunden erscheinen. Ein
 halber Tag zählt als halber.
 
+Von den Clockify-Stunden geht die **gesetzliche Pause** ab: An einem Tag mit mehr
+als sechs Stunden zählen 30 Minuten nicht als Arbeitszeit (§ 11 AZG). 7:30 bis
+16:00 in einem Stück gebucht ergibt also 8 Stunden. Lücken ab zehn Minuten
+zwischen den Einträgen gelten als genommene Pause und mindern den Abzug, und der
+Abzug führt nie unter sechs Stunden. In den Einstellungen abschaltbar.
+
 **Differenz** ist Ist minus Soll, mit einer Toleranz von einer Stunde: darüber
 Überstunden, darunter Minusstunden, dazwischen „im Rahmen".
 
@@ -109,7 +115,14 @@ Der Clockify-API-Key ist zugleich das Login. Er wird im Browser gespeichert und
 bei jedem Request als `X-Api-Key`-Header mitgeschickt. Der Server nimmt ihn
 entgegen, fragt damit `GET /user` bei Clockify und benutzt die zurückgegebene
 User-ID, um die Urlaubseinträge zuzuordnen — gespeichert wird der Key
-serverseitig nie. Ein ungültiger Key führt zu `401`.
+serverseitig nie, nur ein Hash des Keys samt User-ID für 15 Minuten im Speicher.
+Ein ungültiger Key führt zu `401`.
+
+Clockify erlaubt im Free-Plan 30 Anfragen pro Stunde. Das Dashboard lädt darum mit
+einer Abfrage das ganze Jahr, aktualisiert nur alle 15 Minuten und nur bei sichtbarer
+Seite. Neue Buchungen erscheinen also verzögert, außer man drückt „Aktualisieren".
+Ist das Limit erreicht, bleibt der letzte Stand stehen, und die App versucht es erst
+nach einer Stunde von selbst wieder.
 
 Das heißt auch: Wer die App öffentlich hostet, hostet keine fremden
 Zugangsdaten. Es heißt aber ebenso, dass der Key im Browser liegt — auf einem

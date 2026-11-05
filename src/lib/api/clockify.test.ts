@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   ClockifyClient,
+  ClockifyRateLimitError,
+  entriesInRange,
   pickWorkspace,
   TIME_ENTRIES_MAX_PAGES,
   TIME_ENTRIES_PAGE_SIZE,
@@ -89,8 +91,27 @@ describe('getTimeEntries (#33)', () => {
     mockFetch((url) =>
       url.searchParams.get('page') === '1' ? page(TIME_ENTRIES_PAGE_SIZE) : page(10)
     );
-    const summary = await client.getYearEntries('w1', 'u1', 2026);
+    const summary = client.calculateTotalHours(await load());
     expect(summary.totalHours).toBe(TIME_ENTRIES_PAGE_SIZE + 10);
+  });
+});
+
+describe('Limit und Zeitraum', () => {
+  it('meldet ein 429 als Limit und fragt nicht sofort noch einmal', async () => {
+    const fetchMock = vi.fn(async () => new Response('{"code":429}', { status: 429 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new ClockifyClient(API_KEY);
+    await expect(client.getCurrentUser()).rejects.toBeInstanceOf(ClockifyRateLimitError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('entriesInRange nimmt nur Einträge, die im Zeitraum beginnen', () => {
+    const at = (iso: string) => ({ ...entry(0), timeInterval: { start: iso, end: '', duration: 'PT1H' } });
+    const inside = at(new Date(2026, 10, 18, 23, 59).toISOString());
+    const after = at(new Date(2026, 10, 19, 0, 0).toISOString());
+    const from = new Date(2026, 10, 18, 0, 0);
+    const to = new Date(2026, 10, 18, 23, 59, 59, 999);
+    expect(entriesInRange([inside, after], from, to)).toEqual([inside]);
   });
 });
 
